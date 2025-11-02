@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>万圣节配对挑战 🎃</title>
+<title>万圣节配对挑战</title>
 <style>
   :root{
     --bg:#0b0b1a;--text:#f7f7fb;--panel:#151532;--panel2:#0f0f23;
     --tile:#1d1d36;--tile-hover:#2a2a55;--tile-selected:#3a3a7a;
-    --orange:#ffb454;--violet:#7e5cef;--green:#2dd4bf;--red:#ff6b6b;
+    --violet:#7e5cef;--green:#22c55e;--amber:#f59e0b;--red:#ef4444;
     --shadow:0 10px 30px rgba(0,0,0,.45);
   }
   html,body{height:100%;margin:0;background:
@@ -19,15 +19,12 @@
   header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:8px 0 12px}
   .title{display:flex;gap:10px;align-items:center;font-weight:900;font-size:clamp(18px,2.6vw,26px)}
   .panel{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid #27275a;border-radius:16px;padding:12px 14px;box-shadow:var(--shadow);display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  .badge{padding:8px 12px;border-radius:999px;background:#1b1b3a;border:1px solid #2a2a58;font-weight:800}
+  .badge{padding:8px 12px;border-radius:999px;background:#1b1b3a;border:1px solid #2a2a58;font-weight:800;transition:.2s background,.2s border-color,.2s transform}
   .btn{appearance:none;border:0;background:linear-gradient(180deg,#ffb454,#ff9640);color:#3b1800;padding:10px 14px;border-radius:12px;font-weight:900;cursor:pointer;box-shadow:inset 0 -2px 0 rgba(0,0,0,.15),0 8px 16px rgba(0,0,0,.25);transition:.15s transform,.15s filter}
   .btn:active{transform:translateY(1px)}
-  .btn.secondary{background:linear-gradient(180deg,#8a82ff,#6c63ff);color:#0a0720}
   .btn.ghost{background:#1f1f3f;color:#c5c6ff;border:1px solid #2f2f63}
-  .meter{position:relative;height:12px;background:#1b1b36;border:1px solid #2a2a52;border-radius:999px;overflow:hidden;min-width:180px}
-  .fill{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,#ffb454,#ff6b6b)}
-  .dim{opacity:.75}
-
+  .meter{position:relative;height:14px;background:#1b1b36;border:1px solid #2a2a52;border-radius:999px;overflow:hidden;min-width:200px}
+  .fill{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,var(--green),#86efac);transition:width .35s ease, background .2s ease, filter .2s ease}
   .stage-wrap{margin:14px 0}
   .stage{
     position:relative;width:100%;height: clamp(420px, 60vw, 640px);
@@ -41,10 +38,9 @@
     transition:.12s transform,.12s filter,.12s box-shadow,.12s background;user-select:none;
   }
   .tile:hover{background:var(--tile-hover)}
-  .tile.selected{background:var(--tile-selected);box-shadow:0 0 0 3px var(--violet) inset}
+  .tile.selected{background:var(--tile-selected);box-shadow:0 0 0 3px var(--violet) inset,0 0 14px rgba(126,92,239,.4)}
   .tile.pop{animation:pop .35s both}
   @keyframes pop{0%{transform:scale(1)}30%{transform:scale(1.15)}100%{transform:scale(.1);opacity:0}}
-
   .overlay{position:fixed;inset:0;background:rgba(6,6,14,.75);display:none;align-items:center;justify-content:center;padding:20px;z-index:10}
   .dialog{max-width:640px;width:100%;background:linear-gradient(180deg,#161634,#0e0e22);border:1px solid #2a2a58;border-radius:18px;box-shadow:var(--shadow);padding:22px}
   .levels{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:10px}
@@ -55,23 +51,37 @@
   .name-input{display:flex;gap:8px;flex:1}
   .name-input input{flex:1;padding:8px 10px;border-radius:8px;border:1px solid #2a2a58;background:#1b1b3a;color:#fff;font-weight:600;}
   footer{opacity:.8;text-align:center;margin:10px 0}
+
+  /* 倒计时颜色状态 */
+  #timeLabel{background:#1e293b;border-color:#334155}
+  .time-ok #timeLabel{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.35)}
+  .time-warn #timeLabel{background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.45)}
+  .time-danger #timeLabel{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.5);transform:scale(1.02)}
+  .pulse{animation:pulse 1s infinite}
+  @keyframes pulse{0%{filter:drop-shadow(0 0 0 rgba(255,255,255,0))}50%{filter:drop-shadow(0 0 10px rgba(255,255,255,.35))}100%{filter:drop-shadow(0 0 0 rgba(255,255,255,0))}}
+
+  @media (max-width:600px){.tile{width:58px;height:58px;font-size:32px}}
 </style>
 </head>
 <body>
 <div class="container">
   <header>
-    <div class="title"><span>🌕</span><span>万圣节配对挑战</span><span class="dim">（任意两张相同即可消除）</span></div>
-    <div class="panel">
+    <div class="title"><span>🌕</span><span>万圣节配对挑战</span></div>
+    <div class="panel" id="panel">
       <span class="badge" id="score">得分 0</span>
       <span class="badge" id="combo">连击 x1</span>
       <span class="badge">关卡 <span id="lvLabel">1</span></span>
+
+      <!-- 进度条 + 倒计时数字 -->
       <div class="meter"><div class="fill" id="timeFill"></div></div>
+      <span class="badge" id="timeLabel">倒计时 0s</span>
+
       <button class="btn" id="btnRestart">重开</button>
     </div>
   </header>
 
   <div class="stage-wrap"><div class="stage" id="stage"></div></div>
-  <footer>🎃 规则：点击一张图案，再点击任意一张相同图案即可配对消除（无需连线规则）。</footer>
+  <footer>🎃 规则：点击两张相同图案即可配对消除。</footer>
 </div>
 
 <!-- 欢迎页（3关） -->
@@ -83,7 +93,7 @@
   </div>
 </div>
 
-<!-- 结算页（这里支持输入昵称 & 即时刷新证书） -->
+<!-- 结算页（输入昵称 & 即时刷新证书） -->
 <div class="overlay" id="endOverlay" style="display:none;">
   <div class="dialog">
     <h2 id="endTitle">通关！</h2>
@@ -91,7 +101,7 @@
 
     <div class="dl-bar">
       <div class="name-input">
-        <input id="nameInput" type="text" placeholder="输入名字/昵称（可选）" maxlength="20" />
+        <input id="nameInput" type="text" placeholder="输入名字/昵称（可留空）" maxlength="20" />
         <button class="btn ghost" id="btnUpdateCert">更新证书</button>
       </div>
       <a class="btn" id="btnDownload" download="万圣节证书.png">下载证书.png</a>
@@ -124,14 +134,18 @@ function sfxWin(){ [800,1000,1200,1600].forEach((f,i)=>blip({fStart:f,fEnd:f/1.5
 /** ---------- 状态 ---------- */
 let state={
   lv:0, score:0, combo:1, bestCombo:1, lock:false,
-  picked:null, tiles:[], startTime:0, name:'', // name 允许空
+  picked:null, tiles:[], startTime:0, name:'',
+  timeLeft:0
 };
 
+// DOM
 const stage=document.getElementById('stage');
 const scoreEl=document.getElementById('score');
 const comboEl=document.getElementById('combo');
 const lvLabel=document.getElementById('lvLabel');
 const timeFill=document.getElementById('timeFill');
+const timeLabel=document.getElementById('timeLabel');
+const panel=document.getElementById('panel');
 
 const startOverlay=document.getElementById('startOverlay');
 const levelsEl=document.getElementById('levels');
@@ -148,8 +162,60 @@ const btnRestart=document.getElementById('btnRestart');
 const btnAgain=document.getElementById('btnAgain');
 const btnNext=document.getElementById('btnNext');
 
+// 工具
 function randInt(n){return Math.floor(Math.random()*n);}
 function randFloat(a,b){return a+Math.random()*(b-a);}
+
+/** ---------- 倒计时（带进度条 + 颜色 + 脉冲） ---------- */
+let timerId=null, timerTotal=0;
+function clearTimer(){ if(timerId){ clearInterval(timerId); timerId=null; } }
+function startTimer(seconds){
+  clearTimer();
+  timerTotal = seconds;
+  state.timeLeft = seconds;
+  updateTimerUI();
+  timerId = setInterval(()=>{
+    state.timeLeft -= 1;
+    updateTimerUI();
+    if(state.timeLeft<=0){
+      clearTimer();
+      showEnd(false); // 时间到，判负
+    }
+  },1000);
+}
+function updateTimerUI(){
+  // 数字
+  if(timeLabel) timeLabel.textContent = `倒计时 ${Math.max(0, state.timeLeft)}s`;
+
+  // 进度条 & 色阶
+  const pct = timerTotal>0 ? (state.timeLeft/timerTotal)*100 : 0;
+  timeFill.style.width = Math.max(0, Math.min(100, pct)) + '%';
+
+  // 根据阈值切换颜色与状态类
+  panel.classList.remove('time-ok','time-warn','time-danger');
+  if(pct > 50){
+    panel.classList.add('time-ok');
+    timeFill.style.background = 'linear-gradient(90deg,var(--green),#86efac)';
+    timeFill.classList.remove('pulse');
+    timeLabel.classList.remove('pulse');
+  }else if(pct > 20){
+    panel.classList.add('time-warn');
+    timeFill.style.background = 'linear-gradient(90deg,var(--amber),#fde68a)';
+    timeFill.classList.remove('pulse');
+    timeLabel.classList.remove('pulse');
+  }else{
+    panel.classList.add('time-danger');
+    timeFill.style.background = 'linear-gradient(90deg,var(--red),#fca5a5)';
+    // <10s 开启脉冲提醒
+    if(state.timeLeft <= 10){
+      timeFill.classList.add('pulse');
+      timeLabel.classList.add('pulse');
+    }else{
+      timeFill.classList.remove('pulse');
+      timeLabel.classList.remove('pulse');
+    }
+  }
+}
 
 /** 关卡选择（3关） */
 LEVELS.forEach((lv,i)=>{
@@ -169,6 +235,7 @@ function startGame(i){
   state.picked=null; state.startTime=Date.now();
   scoreEl.textContent='得分 0'; comboEl.textContent='连击 x1'; lvLabel.textContent=i+1;
   buildScene(cfg);
+  startTimer(cfg.time);          // 启动倒计时
   startOverlay.style.display='none';
   endOverlay.style.display='none';
 }
@@ -223,17 +290,14 @@ function onPick(el,v){
 
 /** 结算 + 证书（名字可选，默认“神秘玩家”） */
 function showEnd(win){
+  clearTimer(); // 结束时停止计时
   if(win) sfxWin();
   const elapsed=Math.round((Date.now()-state.startTime)/1000);
   endTitle.textContent=win?'通关！🎉':'时间到！';
   endStats.textContent=`得分：${state.score}｜用时：${elapsed}s`;
 
-  // 读当前输入框（可能为空）
-  const displayName = nameInput.value.trim() || '神秘玩家';
-
-  const url=makeCert({
-    win, score:state.score, time:elapsed, lv:state.lv+1, name:displayName
-  });
+  const displayName = nameInput.value?.trim() || '神秘玩家';
+  const url=makeCert({win,score:state.score,time:elapsed,lv:state.lv+1,name:displayName});
   certImg.src=url; btnDownload.href=url;
 
   endOverlay.style.display='flex';
@@ -242,13 +306,11 @@ function showEnd(win){
 /** 点击“更新证书”或输入回车，实时刷新 */
 btnUpdateCert.onclick = ()=>regenerateCert();
 nameInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); regenerateCert(); }});
-nameInput.addEventListener('input', ()=>{ /* 也可以实时生成，但为省性能，保留按钮或回车触发 */ });
-
 function regenerateCert(){
-  if(endOverlay.style.display==='none') return; // 仅在结算页打开时
+  if(endOverlay.style.display==='none') return;
   const win = /通关/.test(endTitle.textContent);
   const elapsed = parseInt((endStats.textContent.match(/用时：(\d+)s/)||[])[1]||'0',10);
-  const displayName = nameInput.value.trim() || '神秘玩家';
+  const displayName = nameInput.value?.trim() || '神秘玩家';
   const url=makeCert({win, score:state.score, time:elapsed, lv:state.lv+1, name:displayName});
   certImg.src=url; btnDownload.href=url;
 }
@@ -262,7 +324,7 @@ function makeCert({win,score,time,lv,name}){
   ctx.strokeStyle='#7e5cef'; ctx.lineWidth=6; ctx.strokeRect(20,20,w-40,h-40);
 
   ctx.fillStyle='#fff'; ctx.font='bold 46px system-ui'; ctx.textAlign='center';
-  ctx.fillText('万圣节配对挑战 证书', w/2, 100);
+  ctx.fillText('万圣节配对挑战', w/2, 100);
 
   ctx.font='600 30px system-ui'; ctx.fillStyle='#a7ffea';
   ctx.fillText(`颁发给：${name}`, w/2, 160);
@@ -286,4 +348,3 @@ function makeCert({win,score,time,lv,name}){
 </script>
 </body>
 </html>
-
