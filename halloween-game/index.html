@@ -6,19 +6,8 @@
 <title>万圣节连连看 🎃</title>
 <style>
   :root{
-    --bg:#0b0b1a;
-    --bg2:#14142b;
-    --orange:#ffa43a;
-    --purple:#7e5cef;
-    --green:#34d399;
-    --red:#ff6b6b;
-    --text:#f7f7fb;
-    --tile:#1d1d36;
-    --tile-hover:#262648;
-    --tile-selected:#34346a;
-    --grid-gap:8px;
-    --radius:14px;
-    --shadow:0 8px 20px rgba(0,0,0,.35);
+    --bg:#0b0b1a;--bg2:#14142b;--orange:#ffa43a;--purple:#7e5cef;--green:#34d399;--red:#ff6b6b;--text:#f7f7fb;
+    --tile:#1d1d36;--tile-hover:#262648;--tile-selected:#34346a;--grid-gap:8px;--radius:14px;--shadow:0 8px 20px rgba(0,0,0,.35)
   }
   html,body{height:100%;background:radial-gradient(1200px 700px at 70% -200px,#1a1440 0%,#0d0b1d 40%,#070711 100%), var(--bg); color:var(--text);font-family: ui-sans-serif,system-ui,Segoe UI,Roboto,Apple Color Emoji,Noto Color Emoji,EmojiSymbols;}
   *{box-sizing:border-box}
@@ -38,7 +27,7 @@
   .tile:hover{background:var(--tile-hover)}
   .tile.selected{background:var(--tile-selected);box-shadow:0 0 0 2px #7e5cef inset}
   .tile.clearing{animation:pop .35s both}
-  @keyframes pop{0%{transform:scale(1)} 30%{transform:scale(1.15)} 100%{transform:scale(.1);opacity:0}}
+  @keyframes pop{0%{transform:scale(1)}30%{transform:scale(1.15)}100%{transform:scale(.1);opacity:0}}
   .tile.empty{visibility:hidden}
   footer{opacity:.8;text-align:center;margin:16px 0}
   .bar{display:flex;gap:8px;flex-wrap:wrap}
@@ -46,34 +35,21 @@
   .fill{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,#ffb454,#ff6b6b)}
   .combo{color:var(--green);font-weight:900}
   .dim{opacity:.7}
-  .overlay{
-    position:fixed;inset:0;background:rgba(6,6,14,.75);display:none;align-items:center;justify-content:center;padding:20px;z-index:10
-  }
+  .overlay{position:fixed;inset:0;background:rgba(6,6,14,.75);display:none;align-items:center;justify-content:center;padding:20px;z-index:10}
   .dialog{max-width:520px;width:100%;background:linear-gradient(180deg,#161634,#0e0e22);border:1px solid #2a2a58;border-radius:18px;box-shadow:var(--shadow);padding:22px}
   .dialog h2{margin-top:0}
   .levels{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:10px}
   .lv{padding:12px 14px;border-radius:12px;background:#1b1b3a;border:1px solid #2a2a58;cursor:pointer;text-align:center;font-weight:800}
   .lv:hover{filter:brightness(1.08)}
   .hidden{display:none !important}
-  .hint-line{
-    position:absolute;pointer-events:none;z-index:5;
-    stroke:#7ee8fa;stroke-width:6;stroke-linejoin:round;stroke-linecap:round;
-    filter:drop-shadow(0 0 10px rgba(126,232,250,.6));
-  }
-  /* Responsive size tweak */
-  @media (max-width:600px) {
-    .tile{width:52px;height:52px;font-size:28px}
-  }
+  .hint-line{position:absolute;pointer-events:none;z-index:5;stroke:#7ee8fa;stroke-width:6;stroke-linejoin:round;stroke-linecap:round;filter:drop-shadow(0 0 10px rgba(126,232,250,.6))}
+  @media (max-width:600px){.tile{width:52px;height:52px;font-size:28px}}
 </style>
 </head>
 <body>
 <div class="container">
   <header>
-    <div class="title">
-      <span class="moon">🌕</span>
-      <span>万圣节连连看</span>
-      <span class="dim">（最多两次拐弯）</span>
-    </div>
+    <div class="title"><span class="moon">🌕</span><span>万圣节连连看</span><span class="dim">（最多两次拐弯）</span></div>
     <div class="panel">
       <span class="badge" id="score">得分 0</span>
       <span class="badge" id="combo">连击 x1</span>
@@ -87,11 +63,8 @@
     </div>
   </header>
 
-  <div class="grid-wrap">
-    <div class="grid" id="grid"></div>
-  </div>
+  <div class="grid-wrap"><div class="grid" id="grid"></div></div>
   <svg id="lines" width="0" height="0" class="hint-svg" style="position:absolute;inset:0;"></svg>
-
   <footer>🎃 提示：点击两张相同图标，若路径不超过两次拐弯且不被阻挡即可消除。</footer>
 </div>
 
@@ -124,19 +97,15 @@ const LEVELS = [
   { rows:8, cols:10,kinds:8,  time:50 },
   { rows:10,cols:12,kinds:10, time:60 },
 ];
+
 /** ------- 状态 ------- **/
 let state = {
-  lv: 0,
-  rows: 0, cols: 0,
-  board: [], // 带外框的二维数组（数值：0空，>0为种类索引）
-  picked: null,
-  score: 0,
-  combo: 1,
-  lastMatchTime: 0,
-  timeLeft: 0,
-  timerId: null,
-  lock: false,
+  lv: 0, rows: 0, cols: 0,
+  board: [], // 外圈带0
+  picked: null, score: 0, combo: 1, lastMatchTime: 0,
+  timeLeft: 0, timerId: null, lock: false,
 };
+
 /** ------- DOM ------- **/
 const gridEl = document.getElementById('grid');
 const scoreEl = document.getElementById('score');
@@ -189,27 +158,20 @@ btnRestart.onclick = ()=>startGame(state.lv);
 btnNext.onclick = ()=> startGame(Math.min(state.lv+1, LEVELS.length-1));
 btnAgain.onclick = ()=> startGame(state.lv);
 
-/** 构建带外框的棋盘（连连看常用：四周加一圈空白便于判断外部路径） */
+/** 构建带外框的棋盘（四周加一圈空白便于判断外部路径） */
 function buildBoard(cfg){
   const {rows, cols, kinds} = cfg;
   const total = rows * cols;
-  // 保证偶数：配成对
   const tileCount = total % 2 === 0 ? total : total - 1;
   let pool = [];
-  // 随机生成成对的种类
   for(let i=0;i<tileCount/2;i++){
-    const kind = 1 + randInt(kinds); // 从1开始（0代表空）
+    const kind = 1 + randInt(kinds);
     pool.push(kind, kind);
   }
-  // 若总格是奇数，留一个空
   if(total > tileCount) pool.push(0);
 
-  // 打乱
-  for(let i=pool.length-1;i>0;i--){
-    const j=randInt(i+1); [pool[i],pool[j]]=[pool[j],pool[i]];
-  }
+  for(let i=pool.length-1;i>0;i--){ const j=randInt(i+1); [pool[i],pool[j]]=[pool[j],pool[i]]; }
 
-  // 创建内层数组
   const inner = [];
   let p=0;
   for(let r=0;r<rows;r++){
@@ -219,7 +181,6 @@ function buildBoard(cfg){
     }
   }
 
-  // 外圈填充0
   const R = rows+2, C = cols+2;
   state.board = Array.from({length:R}, (_,r)=>
     Array.from({length:C}, (_,c)=>{
@@ -228,16 +189,14 @@ function buildBoard(cfg){
     })
   );
 
-  // 若无解，打乱直至可解（简单保底）
   if(!existsAnyPair()) shuffleUntilSolvable(40);
 }
 
 /** 渲染网格 */
 function renderBoard(){
-  // 网格样式
   gridEl.style.gridTemplateColumns = `repeat(${state.cols}, 1fr)`;
   gridEl.innerHTML='';
-  svgLines.innerHTML=''; // 清除提示线
+  svgLines.innerHTML='';
   svgLines.setAttribute('width', window.innerWidth);
   svgLines.setAttribute('height', window.innerHeight);
 
@@ -263,7 +222,6 @@ function startTimer(){
   timeFill.style.width='0%';
   state.timerId = setInterval(()=>{
     state.timeLeft -= 1;
-    const pct = Math.max(0, (total - (total - state.timeLeft)) / total);
     timeFill.style.width = `${(state.timeLeft/total)*100}%`;
     if(state.timeLeft<=0){
       clearInterval(state.timerId);
@@ -283,7 +241,6 @@ function onPick(r,c,el){
   const v = state.board[r][c];
   if(state.lock || v===0) return;
 
-  // 如果之前没选或选的是同一张
   if(!state.picked){
     state.picked = {r,c,el,v};
     el.classList.add('selected');
@@ -291,7 +248,6 @@ function onPick(r,c,el){
   }
   if(state.picked.r===r && state.picked.c===c) return;
 
-  // 不是同类直接切换选择
   if(state.picked.v !== v){
     state.picked.el.classList.remove('selected');
     state.picked = {r,c,el,v};
@@ -299,12 +255,10 @@ function onPick(r,c,el){
     return;
   }
 
-  // 相同：检测是否可连
   const a = {r:state.picked.r, c:state.picked.c};
   const b = {r, c};
   const path = canConnect(a,b);
   if(path){
-    // 动画 & 清空
     state.lock = true;
     drawPath(path);
     state.picked.el.classList.remove('selected');
@@ -314,89 +268,73 @@ function onPick(r,c,el){
     setTimeout(()=>{
       state.board[a.r][a.c]=0;
       state.board[b.r][b.c]=0;
-      // 更新两格DOM为empty
-      state.picked.el.className='tile empty';
-      state.picked.el.textContent='';
-      el.className='tile empty';
-      el.textContent='';
+      state.picked.el.className='tile empty'; state.picked.el.textContent='';
+      el.className='tile empty'; el.textContent='';
       clearPath();
       state.lock=false;
       state.picked=null;
 
-      // 计分与连击
       const now = performance.now();
       state.combo = (now - state.lastMatchTime < 1800) ? Math.min(state.combo+1, 10) : 1;
       state.lastMatchTime = now;
-      let gain = 10 * state.combo;
-      state.score += gain;
+      state.score += 10 * state.combo;
       updateHud();
 
-      // 检查是否清空
       if(isCleared()){
         showEnd(true);
-      }else{
-        // 若无解，自动洗牌
-        if(!existsAnyPair()) shuffleUntilSolvable(40,true);
+      }else if(!existsAnyPair()){
+        shuffleUntilSolvable(40,true);
       }
     },260);
   }else{
-    // 不可连：切换选择
     state.picked.el.classList.remove('selected');
     state.picked = {r,c,el,v};
     el.classList.add('selected');
   }
 }
 
-/** 直线是否畅通 */
-function clearLine(a,b){
-  if(a.r===b.r){
-    const r=a.r, c1=Math.min(a.c,b.c), c2=Math.max(a.c,b.c);
-    for(let c=c1+1;c<c2;c++) if(state.board[r][c]!==0) return false;
+/** ------- 路径判定（修正版） ------- */
+/** 直线是否无阻挡（不含两端） */
+function clearLine(a, b){
+  if (a.r === b.r) {
+    const r = a.r, c1 = Math.min(a.c, b.c), c2 = Math.max(a.c, b.c);
+    for (let c = c1 + 1; c < c2; c++) if (state.board[r][c] !== 0) return false;
     return true;
   }
-  if(a.c===b.c){
-    const c=a.c, r1=Math.min(a.r,b.r), r2=Math.max(a.r,b.r);
-    for(let r=r1+1;r<r2;r++) if(state.board[r][c]!==0) return false;
+  if (a.c === b.c) {
+    const c = a.c, r1 = Math.min(a.r, b.r), r2 = Math.max(a.r, b.r);
+    for (let r = r1 + 1; r < r2; r++) if (state.board[r][c] !== 0) return false;
     return true;
   }
   return false;
 }
 
-/** 可连判定：0转、1转、2转（典型连连看规则） */
-function canConnect(a,b){
-  if(a.r===b.r && a.c===b.c) return null;
+/** 0/1/2 拐判定（含外圈路径） */
+function canConnect(a, b){
+  if (a.r === b.r && a.c === b.c) return null;
 
-  // 0转
-  if((a.r===b.r || a.c===b.c) && clearLine(a,b)){
-    return [a,b];
+  // 0 拐
+  if ((a.r === b.r || a.c === b.c) && clearLine(a, b)) return [a, b];
+
+  // 1 拐
+  const p1 = { r: a.r, c: b.c };
+  if (state.board[p1.r][p1.c] === 0 && clearLine(a, p1) && clearLine(p1, b)) return [a, p1, b];
+
+  const p2 = { r: b.r, c: a.c };
+  if (state.board[p2.r][p2.c] === 0 && clearLine(a, p2) && clearLine(p2, b)) return [a, p2, b];
+
+  // 2 拐：穷举所有行/列，找两个拐点均为空，且三段直线均通
+  const R = state.board.length, C = state.board[0].length;
+
+  for (let r = 0; r < R; r++) {
+    if (state.board[r][a.c] !== 0 || state.board[r][b.c] !== 0) continue;
+    const pA = { r, c: a.c }, pB = { r, c: b.c };
+    if (clearLine(a, pA) && clearLine(pA, pB) && clearLine(pB, b)) return [a, pA, pB, b];
   }
-  // 1转：两个拐角 (a.r,b.c) 或 (b.r,a.c)
-  const p1 = {r:a.r, c:b.c};
-  if(state.board[p1.r][p1.c]===0 && clearLine(a,p1) && clearLine(p1,b)){
-    return [a,p1,b];
-  }
-  const p2 = {r:b.r, c:a.c};
-  if(state.board[p2.r][p2.c]===0 && clearLine(a,p2) && clearLine(p2,b)){
-    return [a,p2,b];
-  }
-  // 2转：从a向四个方向延伸，寻找中转点
-  const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
-  for(const [dr,dc] of dirs){
-    let r=a.r, c=a.c;
-    while(true){
-      r+=dr; c+=dc;
-      if(r<0||c<0||r>=state.board.length||c>=state.board[0].length) break;
-      if(state.board[r][c]!==0) break; // 遇阻
-      const p = {r, c};
-      // 尝试 p -> b 一转
-      // 同行/同列直通 或 1转（通过 (r,b.c) / (b.r,c)）
-      if((p.r===b.r && clearLine(p,b)) || (p.c===b.c && clearLine(p,b))){
-        return [a,p,b];
-      }
-      const q1={r:p.r,c:b.c}, q2={r:b.r,c:p.c};
-      if(state.board[q1.r]?.[q1.c]===0 && clearLine(p,q1) && clearLine(q1,b)) return [a,p,q1,b];
-      if(state.board[q2.r]?.[q2.c]===0 && clearLine(p,q2) && clearLine(q2,b)) return [a,p,q2,b];
-    }
+  for (let c = 0; c < C; c++) {
+    if (state.board[a.r][c] !== 0 || state.board[b.r][c] !== 0) continue;
+    const pA = { r: a.r, c }, pB = { r: b.r, c };
+    if (clearLine(a, pA) && clearLine(pA, pB) && clearLine(pB, b)) return [a, pA, pB, b];
   }
   return null;
 }
@@ -411,16 +349,12 @@ function isCleared(){
 
 /** 是否存在任意可连的一对（用于死局检测/提示） */
 function existsAnyPair(){
-  const coords=[];
-  for(let r=1;r<=state.rows;r++)
-    for(let c=1;c<=state.cols;c++)
-      if(state.board[r][c]>0) coords.push({r,c,v:state.board[r][c]});
-  // 用哈希按种类分组，减少组合
   const groups = new Map();
-  for(const t of coords){
-    if(!groups.has(t.v)) groups.set(t.v,[]);
-    groups.get(t.v).push(t);
-  }
+  for(let r=1;r<=state.rows;r++)
+    for(let c=1;c<=state.cols;c++){
+      const v = state.board[r][c];
+      if(v>0){ if(!groups.has(v)) groups.set(v,[]); groups.get(v).push({r,c,v}); }
+    }
   for(const list of groups.values()){
     for(let i=0;i<list.length;i++){
       for(let j=i+1;j<list.length;j++){
@@ -431,21 +365,19 @@ function existsAnyPair(){
   return false;
 }
 
-/** 洗牌（保持非空格打散），尝试直到可解或达到次数 */
+/** 洗牌（保持非空格打散） */
 function shuffleBoard(){
   const cells=[];
   for(let r=1;r<=state.rows;r++)
     for(let c=1;c<=state.cols;c++)
       if(state.board[r][c]>0) cells.push(state.board[r][c]);
-  // 打乱
   for(let i=cells.length-1;i>0;i--){ const j=randInt(i+1); [cells[i],cells[j]]=[cells[j],cells[i]]; }
-  // 回填
   let k=0;
   for(let r=1;r<=state.rows;r++)
     for(let c=1;c<=state.cols;c++)
       if(state.board[r][c]>0) state.board[r][c]=cells[k++];
 
-  // 重新渲染emoji
+  // 更新DOM
   let idx=0;
   [...gridEl.children].forEach((el)=>{
     const r = 1 + Math.floor(idx/state.cols);
@@ -457,9 +389,10 @@ function shuffleBoard(){
   });
 }
 
+/** 多次洗牌直至可解 */
 function shuffleUntilSolvable(limit=30, showTip=false){
   for(let i=0;i<limit;i++){
-    if(existsAnyPair()) { if(showTip) toast('无解？已自动洗牌'); return; }
+    if(existsAnyPair()){ if(showTip) toast('无解？已自动洗牌'); return; }
     shuffleBoard();
   }
 }
@@ -467,15 +400,14 @@ function shuffleUntilSolvable(limit=30, showTip=false){
 /** 画提示线 */
 function drawPath(points){
   clearPath();
-  // 把格子中心映射到屏幕坐标
   const rect = gridEl.getBoundingClientRect();
   const gap = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--grid-gap')) || 8;
-  const tile = gridEl.querySelector('.tile:not(.empty)');
-  const w = tile ? tile.getBoundingClientRect().width : 64;
-  const h = tile ? tile.getBoundingClientRect().height : 64;
+  const sample = gridEl.querySelector('.tile');
+  const w = sample ? sample.getBoundingClientRect().width : 64;
+  const h = sample ? sample.getBoundingClientRect().height : 64;
 
   const toXY = (p)=>{
-    const x = rect.left + (p.c-1)*(w+gap) + w/2 + gap; // grid padding
+    const x = rect.left + (p.c-1)*(w+gap) + w/2 + gap;
     const y = rect.top  + (p.r-1)*(h+gap) + h/2 + gap;
     return {x,y};
   };
@@ -490,15 +422,12 @@ function clearPath(){ svgLines.innerHTML=''; }
 
 /** 提示：找一对可连并闪线 */
 function hint(){
-  const coords=[];
-  for(let r=1;r<=state.rows;r++)
-    for(let c=1;c<=state.cols;c++)
-      if(state.board[r][c]>0) coords.push({r,c,v:state.board[r][c]});
   const groups = new Map();
-  for(const t of coords){
-    if(!groups.has(t.v)) groups.set(t.v,[]);
-    groups.get(t.v).push(t);
-  }
+  for(let r=1;r<=state.rows;r++)
+    for(let c=1;c<=state.cols;c++){
+      const v=state.board[r][c];
+      if(v>0){ if(!groups.has(v)) groups.set(v,[]); groups.get(v).push({r,c,v}); }
+    }
   for(const list of groups.values()){
     for(let i=0;i<list.length;i++){
       for(let j=i+1;j<list.length;j++){
@@ -555,13 +484,6 @@ btnRestart.onclick = ()=>startGame(state.lv);
 window.addEventListener('load', ()=>{
   updateHud();
 });
-
-/** ------- 可选：替换为图片资源 ------- **
- * 想用图片而不是 Emoji？
- * 1. 将 EMOJIS 替换为图片URL数组。
- * 2. 渲染时用 el.innerHTML = `<img src="..." alt="" />`
- * 3. 给 .tile img 设置 max-width:80%;max-height:80%;
- */
 </script>
 </body>
 </html>
