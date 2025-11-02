@@ -131,6 +131,8 @@
 const EMOJIS=["🎃","👻","🦇","🕷️","🕸️","🍬","💀","🐈‍⬛","🧙‍♀️","🍭"];
 const LEVELS=[{pairs:12,kinds:4,time:45},{pairs:16,kinds:6,time:60},{pairs:20,kinds:8,time:75}];
 const TIME_SCALE = 2/3; // 关卡时间缩短为原来的 2/3
+// ✅ 通关时间奖励按关卡阶梯：L1×5、L2×6、L3×8
+const BONUS_PER_SEC_BY_LEVEL = [5, 6, 8];
 const TILE_SIZE=68;
 
 /** ---------- 清脆点击 & 通关音效（WebAudio） ---------- */
@@ -151,7 +153,7 @@ function sfxBonus(){ blip({fStart:1400,fEnd:2200,dur:90,type:'triangle',gain:.04
 let state={
   lv:0, score:0, combo:1, bestCombo:1, lock:false,
   picked:null, tiles:[], startTime:0, name:'',
-  timeLeft:0
+  timeLeft:0, finalScore:0, timeBonus:0
 };
 
 // DOM
@@ -317,7 +319,7 @@ function onPick(el,v){
     state.tiles=state.tiles.filter(t=>t.el!==a && t.el!==b);
     state.lock=false; state.picked=null;
 
-    // 得分
+    // 基础得分
     state.score+=10; scoreEl.textContent=`得分 ${state.score}`;
 
     // ✅ 奖励时间：仅前两关（lv=0,1），每消一对 +1 秒；上限不超过本关最大时长
@@ -337,13 +339,25 @@ function onPick(el,v){
 /** 结算 + 证书（名字可选，默认“神秘玩家”） */
 function showEnd(win){
   clearTimer(); // 结束时停止计时 + 清状态
-  if(win) sfxWin();
   const elapsed=Math.round((Date.now()-state.startTime)/1000);
+
+  // ✅ 按关卡阶梯计算时间奖励：剩余秒 * BONUS_PER_SEC_BY_LEVEL[lv]
+  if(win){
+    const factor = BONUS_PER_SEC_BY_LEVEL[state.lv] || BONUS_PER_SEC_BY_LEVEL[BONUS_PER_SEC_BY_LEVEL.length-1];
+    state.timeBonus = Math.max(0, Math.round(state.timeLeft * factor));
+    state.finalScore = state.score + state.timeBonus;
+    sfxWin();
+  }else{
+    state.timeBonus = 0;
+    state.finalScore = state.score;
+  }
+
   endTitle.textContent=win?'通关！🎉':'时间到！';
-  endStats.textContent=`得分：${state.score}｜用时：${elapsed}s`;
+  const bonusText = state.timeBonus>0 ? `（含时间奖励 +${state.timeBonus}）` : '';
+  endStats.textContent=`得分：${state.finalScore}${bonusText}｜用时：${elapsed}s`;
 
   const displayName = nameInput.value?.trim() || '神秘玩家';
-  const url=makeCert({win,score:state.score,time:elapsed,lv:state.lv+1,name:displayName});
+  const url=makeCert({win,score:state.finalScore,time:elapsed,lv:state.lv+1,name:displayName});
   certImg.src=url; btnDownload.href=url;
 
   endOverlay.style.display='flex';
@@ -357,11 +371,11 @@ function regenerateCert(){
   const win = /通关/.test(endTitle.textContent);
   const elapsed = parseInt((endStats.textContent.match(/用时：(\d+)s/)||[])[1]||'0',10);
   const displayName = nameInput.value?.trim() || '神秘玩家';
-  const url=makeCert({win, score:state.score, time:elapsed, lv:state.lv+1, name:displayName});
+  const url=makeCert({win, score:state.finalScore, time:elapsed, lv:state.lv+1, name:displayName});
   certImg.src=url; btnDownload.href=url;
 }
 
-/** 证书绘制 */
+/** 证书绘制（显示最终分数） */
 function makeCert({win,score,time,lv,name}){
   const w=900,h=600; const c=document.createElement('canvas'); c.width=w; c.height=h; const ctx=c.getContext('2d');
 
@@ -380,7 +394,7 @@ function makeCert({win,score,time,lv,name}){
 
   ctx.textAlign='left'; ctx.fillStyle='#cfd0ff'; ctx.font='24px system-ui';
   ctx.fillText(`关卡：Lv.${lv}`, 100, 280);
-  ctx.fillText(`得分：${score}`, 100, 320);
+  ctx.fillText(`得分：${score}`, 100, 320);        // 使用最终分
   ctx.fillText(`用时：${time}s`, 100, 360);
 
   ctx.fillStyle='#9aa0ff';
