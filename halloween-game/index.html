@@ -3,76 +3,88 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>万圣节连连看 🎃</title>
+<title>万圣节随机关卡 · 简易配对 🎃</title>
 <style>
   :root{
-    --bg:#0b0b1a;--bg2:#14142b;--orange:#ffa43a;--purple:#7e5cef;--green:#34d399;--red:#ff6b6b;--text:#f7f7fb;
-    --tile:#1d1d36;--tile-hover:#262648;--tile-selected:#34346a;--grid-gap:8px;--radius:14px;--shadow:0 8px 20px rgba(0,0,0,.35)
+    --bg:#0b0b1a;--text:#f7f7fb;--panel:#151532;--panel2:#0f0f23;
+    --tile:#1d1d36;--tile-hover:#2a2a55;--tile-selected:#3a3a7a;
+    --orange:#ffb454;--violet:#7e5cef;--green:#2dd4bf;--red:#ff6b6b;
+    --shadow:0 10px 30px rgba(0,0,0,.45);
   }
-  html,body{height:100%;background:radial-gradient(1200px 700px at 70% -200px,#1a1440 0%,#0d0b1d 40%,#070711 100%), var(--bg); color:var(--text);font-family: ui-sans-serif,system-ui,Segoe UI,Roboto,Apple Color Emoji,Noto Color Emoji,EmojiSymbols;}
+  html,body{height:100%;margin:0;background:
+    radial-gradient(1200px 700px at 70% -200px,#1a1440 0%,#0d0b1d 40%,#070711 100%),
+    var(--bg); color:var(--text); font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Apple Color Emoji,Noto Color Emoji;}
   *{box-sizing:border-box}
-  .container{max-width:980px;margin:0 auto;padding:16px}
-  header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:10px 0 16px}
-  .title{display:flex;align-items:center;gap:10px;font-weight:800;font-size:clamp(20px,3.2vw,28px)}
-  .title .moon{filter:drop-shadow(0 0 10px rgba(255,215,128,.4))}
-  .panel{background:linear-gradient(180deg,#151532,#0f0f23);border:1px solid #25254a;border-radius:18px;box-shadow:var(--shadow);padding:14px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-  .badge{padding:8px 12px;border-radius:999px;background:#1e1e3c;border:1px solid #2e2e5e;font-weight:700}
-  .btn{appearance:none;border:0;background:linear-gradient(180deg,#ffb454,#ff9640);color:#3b1800;padding:10px 14px;border-radius:12px;font-weight:800;cursor:pointer;box-shadow:inset 0 -2px 0 rgba(0,0,0,.15),0 6px 14px rgba(0,0,0,.25);transition:.15s transform,.15s filter}
+  .container{max-width:1100px;margin:0 auto;padding:16px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:8px 0 12px}
+  .title{display:flex;gap:10px;align-items:center;font-weight:900;font-size:clamp(18px,2.6vw,26px)}
+  .panel{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid #27275a;border-radius:16px;padding:12px 14px;box-shadow:var(--shadow);display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .badge{padding:8px 12px;border-radius:999px;background:#1b1b3a;border:1px solid #2a2a58;font-weight:800}
+  .btn{appearance:none;border:0;background:linear-gradient(180deg,#ffb454,#ff9640);color:#3b1800;padding:10px 14px;border-radius:12px;font-weight:900;cursor:pointer;box-shadow:inset 0 -2px 0 rgba(0,0,0,.15),0 8px 16px rgba(0,0,0,.25);transition:.15s transform,.15s filter}
   .btn:active{transform:translateY(1px)}
   .btn.secondary{background:linear-gradient(180deg,#8a82ff,#6c63ff);color:#0a0720}
   .btn.ghost{background:#1f1f3f;color:#c5c6ff;border:1px solid #2f2f63}
-  .grid-wrap{margin:18px 0;display:flex;justify-content:center}
-  .grid{display:grid;gap:var(--grid-gap);background:#0e0e22;padding:var(--grid-gap);border-radius:18px;border:1px solid #24244a;box-shadow:var(--shadow)}
-  .tile{width:64px;height:64px;display:flex;align-items:center;justify-content:center;font-size:34px;line-height:1;background:var(--tile);border-radius:var(--radius);border:1px solid #2b2b55;cursor:pointer;user-select:none;transition:.12s transform,.12s background,.12s box-shadow}
-  .tile:hover{background:var(--tile-hover)}
-  .tile.selected{background:var(--tile-selected);box-shadow:0 0 0 2px #7e5cef inset}
-  .tile.clearing{animation:pop .35s both}
-  @keyframes pop{0%{transform:scale(1)}30%{transform:scale(1.15)}100%{transform:scale(.1);opacity:0}}
-  .tile.empty{visibility:hidden}
-  footer{opacity:.8;text-align:center;margin:16px 0}
-  .bar{display:flex;gap:8px;flex-wrap:wrap}
   .meter{position:relative;height:12px;background:#1b1b36;border:1px solid #2a2a52;border-radius:999px;overflow:hidden;min-width:180px}
   .fill{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,#ffb454,#ff6b6b)}
-  .combo{color:var(--green);font-weight:900}
-  .dim{opacity:.7}
+  .dim{opacity:.75}
+
+  /* 游戏区：自由布局 */
+  .stage-wrap{margin:14px 0}
+  .stage{
+    position:relative;
+    width:100%;
+    height: clamp(420px, 60vw, 640px);
+    background:linear-gradient(180deg,rgba(20,20,50,.65),rgba(10,10,30,.65));
+    border:1px solid #26265a;border-radius:18px;box-shadow:var(--shadow);
+    overflow:hidden;
+  }
+  .tile{
+    position:absolute; display:flex; align-items:center; justify-content:center;
+    width:68px;height:68px;font-size:38px;line-height:1;
+    background:var(--tile); border:1px solid #2a2a58; border-radius:18px; cursor:pointer;
+    transition:.12s transform,.12s filter,.12s box-shadow,.12s background; user-select:none;
+  }
+  .tile:hover{background:var(--tile-hover)}
+  .tile.selected{background:var(--tile-selected); box-shadow:0 0 0 3px var(--violet) inset}
+  .tile.pulse{animation:pulse .8s infinite}
+  @keyframes pulse{0%{filter:drop-shadow(0 0 0 rgba(126,232,250,0))}60%{filter:drop-shadow(0 0 10px rgba(126,232,250,.6))}100%{filter:drop-shadow(0 0 0 rgba(126,232,250,0))}}
+  .tile.pop{animation:pop .35s both}
+  @keyframes pop{0%{transform:scale(1)}30%{transform:scale(1.15)}100%{transform:scale(.1);opacity:0}}
   .overlay{position:fixed;inset:0;background:rgba(6,6,14,.75);display:none;align-items:center;justify-content:center;padding:20px;z-index:10}
   .dialog{max-width:520px;width:100%;background:linear-gradient(180deg,#161634,#0e0e22);border:1px solid #2a2a58;border-radius:18px;box-shadow:var(--shadow);padding:22px}
-  .dialog h2{margin-top:0}
   .levels{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:10px}
   .lv{padding:12px 14px;border-radius:12px;background:#1b1b3a;border:1px solid #2a2a58;cursor:pointer;text-align:center;font-weight:800}
-  .lv:hover{filter:brightness(1.08)}
-  .hidden{display:none !important}
-  .hint-line{position:absolute;pointer-events:none;z-index:5;stroke:#7ee8fa;stroke-width:6;stroke-linejoin:round;stroke-linecap:round;filter:drop-shadow(0 0 10px rgba(126,232,250,.6))}
-  @media (max-width:600px){.tile{width:52px;height:52px;font-size:28px}}
+  footer{opacity:.8;text-align:center;margin:10px 0}
+  @media (max-width:600px){.tile{width:58px;height:58px;font-size:32px}}
 </style>
 </head>
 <body>
 <div class="container">
   <header>
-    <div class="title"><span class="moon">🌕</span><span>万圣节连连看</span><span class="dim">（最多两次拐弯）</span></div>
+    <div class="title"><span>🌕</span><span>万圣节随机关卡 · 简易配对</span><span class="dim">（任意两张相同即可消除）</span></div>
     <div class="panel">
       <span class="badge" id="score">得分 0</span>
       <span class="badge" id="combo">连击 x1</span>
       <span class="badge">关卡 <span id="lvLabel">1</span></span>
       <div class="meter"><div class="fill" id="timeFill"></div></div>
-      <div class="bar">
-        <button class="btn" id="btnHint">提示</button>
-        <button class="btn secondary" id="btnShuffle">洗牌</button>
-        <button class="btn ghost" id="btnRestart">重开</button>
-      </div>
+      <button class="btn" id="btnHint">提示</button>
+      <button class="btn secondary" id="btnShuffle">洗牌</button>
+      <button class="btn ghost" id="btnRestart">重开</button>
     </div>
   </header>
 
-  <div class="grid-wrap"><div class="grid" id="grid"></div></div>
-  <svg id="lines" width="0" height="0" class="hint-svg" style="position:absolute;inset:0;"></svg>
-  <footer>🎃 提示：点击两张相同图标，若路径不超过两次拐弯且不被阻挡即可消除。</footer>
+  <div class="stage-wrap">
+    <div class="stage" id="stage"></div>
+  </div>
+
+  <footer>🎃 规则：点击一张图案，再点击任意一张相同图案即可配对消除（无需连线规则）。</footer>
 </div>
 
 <!-- 开始与结算弹窗 -->
 <div class="overlay" id="startOverlay" style="display:flex;">
   <div class="dialog">
     <h2>万圣夜开始啦 👻</h2>
-    <p class="dim">选择关卡并开始你的消除之夜。每关限时，支持提示与洗牌。</p>
+    <p class="dim">选择关卡并开始你的消除之夜。图标会随机散落在场景中。</p>
     <div class="levels" id="levels"></div>
   </div>
 </div>
@@ -81,57 +93,57 @@
   <div class="dialog" id="endDialog">
     <h2 id="endTitle">通关！</h2>
     <p id="endStats" class="dim"></p>
-    <div class="bar" style="margin-top:10px">
-      <button class="btn" id="btnNext">下一关</button>
-      <button class="btn ghost" id="btnAgain">再玩一次</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+      <button class="lv" id="btnNext">下一关</button>
+      <button class="lv" id="btnAgain">再玩一次</button>
     </div>
   </div>
 </div>
 
 <script>
-/** ------- 配置 ------- **/
-const EMOJIS = ["🎃","👻","🦇","🕷️","🕸️","🍬","💀","🐈‍⬛","🧙‍♀️","🍭","📚","🧛"]; // 可替换为图片
+/** ---------- 配置（更简单、低难度） ---------- */
+const EMOJIS = ["🎃","👻","🦇","🕷️","🕸️","🍬","💀","🐈‍⬛","🧙‍♀️","🍭"];
 const LEVELS = [
-  { rows:6, cols:6, kinds:4,  time:30 },
-  { rows:7, cols:8, kinds:6,  time:40 },
-  { rows:8, cols:10,kinds:8,  time:50 },
-  { rows:10,cols:12,kinds:10, time:60 },
+  { pairs: 12, kinds: 4,  time: 45 },  // 24张
+  { pairs: 16, kinds: 6,  time: 60 },  // 32张
+  { pairs: 20, kinds: 8,  time: 75 },  // 40张
+  { pairs: 24, kinds: 10, time: 90 },  // 48张
 ];
+const TILE_SIZE = 68; // 绝对定位尺寸（与CSS一致）
 
-/** ------- 状态 ------- **/
+/** ---------- 状态 ---------- */
 let state = {
-  lv: 0, rows: 0, cols: 0,
-  board: [], // 外圈带0
-  picked: null, score: 0, combo: 1, lastMatchTime: 0,
-  timeLeft: 0, timerId: null, lock: false,
+  lv: 0, score: 0, combo: 1, lastMatchTime: 0,
+  timeLeft: 0, timerId: null, lock:false,
+  picked: null, // {el, v}
+  tiles: [],    // 每个 {el, v}
 };
 
-/** ------- DOM ------- **/
-const gridEl = document.getElementById('grid');
+const stage = document.getElementById('stage');
 const scoreEl = document.getElementById('score');
-const comboEl = document.getElementById('combo');
+const comboEl  = document.getElementById('combo');
 const lvLabel = document.getElementById('lvLabel');
 const timeFill = document.getElementById('timeFill');
 const startOverlay = document.getElementById('startOverlay');
 const endOverlay = document.getElementById('endOverlay');
 const endTitle = document.getElementById('endTitle');
 const endStats = document.getElementById('endStats');
+const levelsEl = document.getElementById('levels');
 const btnHint = document.getElementById('btnHint');
 const btnShuffle = document.getElementById('btnShuffle');
 const btnRestart = document.getElementById('btnRestart');
 const btnNext = document.getElementById('btnNext');
 const btnAgain = document.getElementById('btnAgain');
-const levelsEl = document.getElementById('levels');
-const svgLines = document.getElementById('lines');
 
 function randInt(n){ return Math.floor(Math.random()*n); }
+function randFloat(min,max){ return min + Math.random()*(max-min); }
 
-/** 初始化关卡按钮 */
+/** 构建关卡按钮 */
 (function initLevels(){
   LEVELS.forEach((lv,i)=>{
     const d=document.createElement('button');
     d.className='lv';
-    d.innerHTML=`Lv.${i+1}<br><span class="dim">${lv.rows}×${lv.cols} / ${lv.kinds}种 / ${lv.time}s</span>`;
+    d.innerHTML=`Lv.${i+1}<br><span class="dim">${lv.pairs*2}张 / ${lv.kinds}种 / ${lv.time}s</span>`;
     d.onclick=()=>startGame(i);
     levelsEl.appendChild(d);
   });
@@ -141,85 +153,145 @@ function randInt(n){ return Math.floor(Math.random()*n); }
 function startGame(idx){
   state.lv = idx;
   const cfg = LEVELS[idx];
-  state.rows = cfg.rows;
-  state.cols = cfg.cols;
-  state.score = 0;
-  state.combo = 1;
-  state.picked = null;
-  state.timeLeft = cfg.time;
+  state.score = 0; state.combo = 1; state.picked = null; state.lock=false;
+  buildScene(cfg);
   updateHud();
-  buildBoard(cfg);
-  renderBoard();
-  startTimer();
+  startTimer(cfg.time);
   startOverlay.style.display='none';
   endOverlay.style.display='none';
+  lvLabel.textContent = (idx+1);
 }
 btnRestart.onclick = ()=>startGame(state.lv);
 btnNext.onclick = ()=> startGame(Math.min(state.lv+1, LEVELS.length-1));
 btnAgain.onclick = ()=> startGame(state.lv);
 
-/** 构建带外框的棋盘（四周加一圈空白便于判断外部路径） */
-function buildBoard(cfg){
-  const {rows, cols, kinds} = cfg;
-  const total = rows * cols;
-  const tileCount = total % 2 === 0 ? total : total - 1;
-  let pool = [];
-  for(let i=0;i<tileCount/2;i++){
-    const kind = 1 + randInt(kinds);
+/** 随机散落生成：不网格，随机坐标，尽量避免严重重叠 */
+function buildScene(cfg){
+  stage.innerHTML='';
+  state.tiles = [];
+  // 生成配对池
+  const pool = [];
+  for(let i=0;i<cfg.pairs;i++){
+    const kind = randInt(cfg.kinds); // 0..k-1
     pool.push(kind, kind);
   }
-  if(total > tileCount) pool.push(0);
-
+  // 打乱
   for(let i=pool.length-1;i>0;i--){ const j=randInt(i+1); [pool[i],pool[j]]=[pool[j],pool[i]]; }
 
-  const inner = [];
-  let p=0;
-  for(let r=0;r<rows;r++){
-    inner[r]=[];
-    for(let c=0;c<cols;c++){
-      inner[r][c] = pool[p++] ?? 0;
+  const pad = 10; // 边距
+  const rect = stage.getBoundingClientRect();
+  const W = rect.width, H = rect.height;
+  const R = TILE_SIZE;
+
+  function placeOne(el){
+    // 简单“防重叠”：随机尝试多次，要求与已放置中心距离>阈值
+    const tries = 50;
+    let x=0,y=0,ok=false;
+    for(let t=0;t<tries;t++){
+      x = randFloat(pad, Math.max(pad, W - R - pad));
+      y = randFloat(pad, Math.max(pad, H - R - pad));
+      ok = state.tiles.every(ti=>{
+        const b = ti.el.getBoundingClientRect();
+        const cx = b.left + b.width/2, cy = b.top + b.height/2;
+        const nx = stage.getBoundingClientRect().left + x + R/2;
+        const ny = stage.getBoundingClientRect().top  + y + R/2;
+        const dist = Math.hypot(nx-cx, ny-cy);
+        return dist > R*0.9; // 允许轻微重叠，但尽量分散
+      });
+      if(ok) break;
     }
+    el.style.left = x+'px'; el.style.top = y+'px';
   }
 
-  const R = rows+2, C = cols+2;
-  state.board = Array.from({length:R}, (_,r)=>
-    Array.from({length:C}, (_,c)=>{
-      if(r===0||c===0||r===R-1||c===C-1) return 0;
-      return inner[r-1][c-1];
-    })
-  );
-
-  if(!existsAnyPair()) shuffleUntilSolvable(40);
+  // 放置
+  for(let i=0;i<pool.length;i++){
+    const v = pool[i];
+    const el = document.createElement('div');
+    el.className='tile';
+    el.textContent = EMOJIS[v];
+    el.dataset.v = v;
+    el.style.width = el.style.height = TILE_SIZE+'px';
+    el.onclick = ()=>onPick(el, v);
+    stage.appendChild(el);
+    placeOne(el);
+    state.tiles.push({el, v});
+  }
 }
 
-/** 渲染网格 */
-function renderBoard(){
-  gridEl.style.gridTemplateColumns = `repeat(${state.cols}, 1fr)`;
-  gridEl.innerHTML='';
-  svgLines.innerHTML='';
-  svgLines.setAttribute('width', window.innerWidth);
-  svgLines.setAttribute('height', window.innerHeight);
+/** 点击逻辑：只要相同即消除 */
+function onPick(el, v){
+  if(state.lock) return;
+  if(!state.picked){
+    state.picked = {el, v};
+    el.classList.add('selected');
+    return;
+  }
+  // 点到自己则忽略
+  if(state.picked.el === el) return;
 
-  for(let r=1;r<=state.rows;r++){
-    for(let c=1;c<=state.cols;c++){
-      const v=state.board[r][c];
-      const tile=document.createElement('div');
-      tile.className='tile'+(v===0?' empty':'');
-      tile.dataset.r=r; tile.dataset.c=c;
-      if(v>0){ tile.textContent = EMOJIS[v-1]; }
-      tile.onclick=()=>onPick(r,c,tile);
-      gridEl.appendChild(tile);
+  // 不同：切换选择
+  if(state.picked.v !== v){
+    state.picked.el.classList.remove('selected');
+    state.picked = {el, v};
+    el.classList.add('selected');
+    return;
+  }
+
+  // 相同：直接消除
+  state.lock = true;
+  const a = state.picked.el, b = el;
+  a.classList.remove('selected');
+  a.classList.add('pop'); b.classList.add('pop');
+
+  setTimeout(()=>{
+    a.remove(); b.remove();
+    state.tiles = state.tiles.filter(t=>t.el!==a && t.el!==b);
+    state.lock = false; state.picked = null;
+
+    // 计分/连击
+    const now = performance.now();
+    state.combo = (now - state.lastMatchTime < 1800) ? Math.min(state.combo+1, 10) : 1;
+    state.lastMatchTime = now;
+    state.score += 10 * state.combo;
+    updateHud();
+
+    if(state.tiles.length===0){
+      showEnd(true);
+    }
+  }, 260);
+}
+
+/** 提示：高亮任意一对相同图案 */
+function hint(){
+  const map = new Map();
+  for(const t of state.tiles){
+    if(!map.has(t.v)) map.set(t.v, []);
+    map.get(t.v).push(t.el);
+  }
+  for(const [v, list] of map){
+    if(list.length>=2){
+      list[0].classList.add('pulse'); list[1].classList.add('pulse');
+      setTimeout(()=>{list[0]?.classList.remove('pulse'); list[1]?.classList.remove('pulse');}, 1000);
+      return;
     }
   }
-  lvLabel.textContent = (state.lv+1);
 }
 
-/** 计时器 */
-function startTimer(){
+/** 洗牌：仅重新随机位置 */
+function shuffle(){
+  const rect = stage.getBoundingClientRect(), W = rect.width, H = rect.height, R=TILE_SIZE, pad=10;
+  for(const t of state.tiles){
+    const x = randFloat(pad, Math.max(pad, W - R - pad));
+    const y = randFloat(pad, Math.max(pad, H - R - pad));
+    t.el.style.left = x+'px'; t.el.style.top = y+'px';
+  }
+}
+
+/** 计时器/HUD/结算 */
+function startTimer(total){
   clearInterval(state.timerId);
-  const total = LEVELS[state.lv].time;
   state.timeLeft = total;
-  timeFill.style.width='0%';
+  timeFill.style.width='100%';
   state.timerId = setInterval(()=>{
     state.timeLeft -= 1;
     timeFill.style.width = `${(state.timeLeft/total)*100}%`;
@@ -229,242 +301,10 @@ function startTimer(){
     }
   },1000);
 }
-
-/** HUD */
 function updateHud(){
   scoreEl.textContent = `得分 ${state.score}`;
   comboEl.textContent = `连击 x${state.combo}`;
 }
-
-/** 点击处理 */
-function onPick(r,c,el){
-  const v = state.board[r][c];
-  if(state.lock || v===0) return;
-
-  if(!state.picked){
-    state.picked = {r,c,el,v};
-    el.classList.add('selected');
-    return;
-  }
-  if(state.picked.r===r && state.picked.c===c) return;
-
-  if(state.picked.v !== v){
-    state.picked.el.classList.remove('selected');
-    state.picked = {r,c,el,v};
-    el.classList.add('selected');
-    return;
-  }
-
-  const a = {r:state.picked.r, c:state.picked.c};
-  const b = {r, c};
-  const path = canConnect(a,b);
-  if(path){
-    state.lock = true;
-    drawPath(path);
-    state.picked.el.classList.remove('selected');
-    state.picked.el.classList.add('clearing');
-    el.classList.add('clearing');
-
-    setTimeout(()=>{
-      state.board[a.r][a.c]=0;
-      state.board[b.r][b.c]=0;
-      state.picked.el.className='tile empty'; state.picked.el.textContent='';
-      el.className='tile empty'; el.textContent='';
-      clearPath();
-      state.lock=false;
-      state.picked=null;
-
-      const now = performance.now();
-      state.combo = (now - state.lastMatchTime < 1800) ? Math.min(state.combo+1, 10) : 1;
-      state.lastMatchTime = now;
-      state.score += 10 * state.combo;
-      updateHud();
-
-      if(isCleared()){
-        showEnd(true);
-      }else if(!existsAnyPair()){
-        shuffleUntilSolvable(40,true);
-      }
-    },260);
-  }else{
-    state.picked.el.classList.remove('selected');
-    state.picked = {r,c,el,v};
-    el.classList.add('selected');
-  }
-}
-
-/** ------- 路径判定（修正版） ------- */
-/** 直线是否无阻挡（不含两端） */
-function clearLine(a, b){
-  if (a.r === b.r) {
-    const r = a.r, c1 = Math.min(a.c, b.c), c2 = Math.max(a.c, b.c);
-    for (let c = c1 + 1; c < c2; c++) if (state.board[r][c] !== 0) return false;
-    return true;
-  }
-  if (a.c === b.c) {
-    const c = a.c, r1 = Math.min(a.r, b.r), r2 = Math.max(a.r, b.r);
-    for (let r = r1 + 1; r < r2; r++) if (state.board[r][c] !== 0) return false;
-    return true;
-  }
-  return false;
-}
-
-/** 0/1/2 拐判定（含外圈路径） */
-function canConnect(a, b){
-  if (a.r === b.r && a.c === b.c) return null;
-
-  // 0 拐
-  if ((a.r === b.r || a.c === b.c) && clearLine(a, b)) return [a, b];
-
-  // 1 拐
-  const p1 = { r: a.r, c: b.c };
-  if (state.board[p1.r][p1.c] === 0 && clearLine(a, p1) && clearLine(p1, b)) return [a, p1, b];
-
-  const p2 = { r: b.r, c: a.c };
-  if (state.board[p2.r][p2.c] === 0 && clearLine(a, p2) && clearLine(p2, b)) return [a, p2, b];
-
-  // 2 拐：穷举所有行/列，找两个拐点均为空，且三段直线均通
-  const R = state.board.length, C = state.board[0].length;
-
-  for (let r = 0; r < R; r++) {
-    if (state.board[r][a.c] !== 0 || state.board[r][b.c] !== 0) continue;
-    const pA = { r, c: a.c }, pB = { r, c: b.c };
-    if (clearLine(a, pA) && clearLine(pA, pB) && clearLine(pB, b)) return [a, pA, pB, b];
-  }
-  for (let c = 0; c < C; c++) {
-    if (state.board[a.r][c] !== 0 || state.board[b.r][c] !== 0) continue;
-    const pA = { r: a.r, c }, pB = { r: b.r, c };
-    if (clearLine(a, pA) && clearLine(pA, pB) && clearLine(pB, b)) return [a, pA, pB, b];
-  }
-  return null;
-}
-
-/** 是否已清空（除外框） */
-function isCleared(){
-  for(let r=1;r<=state.rows;r++)
-    for(let c=1;c<=state.cols;c++)
-      if(state.board[r][c]!==0) return false;
-  return true;
-}
-
-/** 是否存在任意可连的一对（用于死局检测/提示） */
-function existsAnyPair(){
-  const groups = new Map();
-  for(let r=1;r<=state.rows;r++)
-    for(let c=1;c<=state.cols;c++){
-      const v = state.board[r][c];
-      if(v>0){ if(!groups.has(v)) groups.set(v,[]); groups.get(v).push({r,c,v}); }
-    }
-  for(const list of groups.values()){
-    for(let i=0;i<list.length;i++){
-      for(let j=i+1;j<list.length;j++){
-        if(canConnect(list[i], list[j])) return true;
-      }
-    }
-  }
-  return false;
-}
-
-/** 洗牌（保持非空格打散） */
-function shuffleBoard(){
-  const cells=[];
-  for(let r=1;r<=state.rows;r++)
-    for(let c=1;c<=state.cols;c++)
-      if(state.board[r][c]>0) cells.push(state.board[r][c]);
-  for(let i=cells.length-1;i>0;i--){ const j=randInt(i+1); [cells[i],cells[j]]=[cells[j],cells[i]]; }
-  let k=0;
-  for(let r=1;r<=state.rows;r++)
-    for(let c=1;c<=state.cols;c++)
-      if(state.board[r][c]>0) state.board[r][c]=cells[k++];
-
-  // 更新DOM
-  let idx=0;
-  [...gridEl.children].forEach((el)=>{
-    const r = 1 + Math.floor(idx/state.cols);
-    const c = 1 + (idx%state.cols);
-    idx++;
-    const v = state.board[r][c];
-    if(v>0){ el.className='tile'; el.textContent=EMOJIS[v-1]; }
-    else { el.className='tile empty'; el.textContent=''; }
-  });
-}
-
-/** 多次洗牌直至可解 */
-function shuffleUntilSolvable(limit=30, showTip=false){
-  for(let i=0;i<limit;i++){
-    if(existsAnyPair()){ if(showTip) toast('无解？已自动洗牌'); return; }
-    shuffleBoard();
-  }
-}
-
-/** 画提示线 */
-function drawPath(points){
-  clearPath();
-  const rect = gridEl.getBoundingClientRect();
-  const gap = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--grid-gap')) || 8;
-  const sample = gridEl.querySelector('.tile');
-  const w = sample ? sample.getBoundingClientRect().width : 64;
-  const h = sample ? sample.getBoundingClientRect().height : 64;
-
-  const toXY = (p)=>{
-    const x = rect.left + (p.c-1)*(w+gap) + w/2 + gap;
-    const y = rect.top  + (p.r-1)*(h+gap) + h/2 + gap;
-    return {x,y};
-  };
-  const path = points.map(toXY);
-
-  const poly = document.createElementNS('http://www.w3.org/2000/svg','polyline');
-  poly.setAttribute('points', path.map(p=>`${p.x},${p.y}`).join(' '));
-  poly.classList.add('hint-line');
-  svgLines.appendChild(poly);
-}
-function clearPath(){ svgLines.innerHTML=''; }
-
-/** 提示：找一对可连并闪线 */
-function hint(){
-  const groups = new Map();
-  for(let r=1;r<=state.rows;r++)
-    for(let c=1;c<=state.cols;c++){
-      const v=state.board[r][c];
-      if(v>0){ if(!groups.has(v)) groups.set(v,[]); groups.get(v).push({r,c,v}); }
-    }
-  for(const list of groups.values()){
-    for(let i=0;i<list.length;i++){
-      for(let j=i+1;j<list.length;j++){
-        const path = canConnect(list[i], list[j]);
-        if(path){
-          drawPath(path);
-          setTimeout(clearPath, 900);
-          return;
-        }
-      }
-    }
-  }
-  toast('当前无解，建议洗牌');
-}
-
-/** 简易吐司 */
-let toastTimer=null;
-function toast(msg){
-  clearTimeout(toastTimer);
-  let el = document.getElementById('toast');
-  if(!el){
-    el = document.createElement('div');
-    el.id='toast';
-    el.style.position='fixed';
-    el.style.left='50%'; el.style.top='14px'; el.style.transform='translateX(-50%)';
-    el.style.padding='10px 14px'; el.style.borderRadius='12px';
-    el.style.background='rgba(20,20,50,.9)'; el.style.border='1px solid #2a2a58';
-    el.style.color='#fff'; el.style.fontWeight='700'; el.style.boxShadow='var(--shadow)';
-    el.style.zIndex='20';
-    document.body.appendChild(el);
-  }
-  el.textContent=msg;
-  el.style.display='block';
-  toastTimer=setTimeout(()=>{ el.style.display='none'; }, 1200);
-}
-
-/** 结束弹窗 */
 function showEnd(win){
   endTitle.textContent = win ? '通关！🎉' : '时间到！';
   endStats.textContent = `得分：${state.score}｜连击：x${state.combo}`;
@@ -474,15 +314,12 @@ function showEnd(win){
 
 /** 事件绑定 */
 btnHint.onclick = ()=>hint();
-btnShuffle.onclick = ()=>{
-  shuffleBoard();
-  if(!existsAnyPair()) shuffleUntilSolvable(60,true);
-};
+btnShuffle.onclick = ()=>shuffle();
 btnRestart.onclick = ()=>startGame(state.lv);
 
-/** 启动 */
+/** 入口 */
 window.addEventListener('load', ()=>{
-  updateHud();
+  // 关卡按钮（已创建），等待选择
 });
 </script>
 </body>
