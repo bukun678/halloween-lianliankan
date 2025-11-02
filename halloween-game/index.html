@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>万圣节连连看 🎃</title>
+<style>
+  :root{
+    --bg:#0b0b1a;
+    --bg2:#14142b;
+    --orange:#ffa43a;
+    --purple:#7e5cef;
+    --green:#34d399;
+    --red:#ff6b6b;
+    --text:#f7f7fb;
+    --tile:#1d1d36;
+    --tile-hover:#262648;
+    --tile-selected:#34346a;
+    --grid-gap:8px;
+    --radius:14px;
+    --shadow:0 8px 20px rgba(0,0,0,.35);
+  }
+  html,body{height:100%;background:radial-gradient(1200px 700px at 70% -200px,#1a1440 0%,#0d0b1d 40%,#070711 100%), var(--bg); color:var(--text);font-family: ui-sans-serif,system-ui,Segoe UI,Roboto,Apple Color Emoji,Noto Color Emoji,EmojiSymbols;}
+  *{box-sizing:border-box}
+  .container{max-width:980px;margin:0 auto;padding:16px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:10px 0 16px}
+  .title{display:flex;align-items:center;gap:10px;font-weight:800;font-size:clamp(20px,3.2vw,28px)}
+  .title .moon{filter:drop-shadow(0 0 10px rgba(255,215,128,.4))}
+  .panel{background:linear-gradient(180deg,#151532,#0f0f23);border:1px solid #25254a;border-radius:18px;box-shadow:var(--shadow);padding:14px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .badge{padding:8px 12px;border-radius:999px;background:#1e1e3c;border:1px solid #2e2e5e;font-weight:700}
+  .btn{appearance:none;border:0;background:linear-gradient(180deg,#ffb454,#ff9640);color:#3b1800;padding:10px 14px;border-radius:12px;font-weight:800;cursor:pointer;box-shadow:inset 0 -2px 0 rgba(0,0,0,.15),0 6px 14px rgba(0,0,0,.25);transition:.15s transform,.15s filter}
+  .btn:active{transform:translateY(1px)}
+  .btn.secondary{background:linear-gradient(180deg,#8a82ff,#6c63ff);color:#0a0720}
+  .btn.ghost{background:#1f1f3f;color:#c5c6ff;border:1px solid #2f2f63}
+  .grid-wrap{margin:18px 0;display:flex;justify-content:center}
+  .grid{display:grid;gap:var(--grid-gap);background:#0e0e22;padding:var(--grid-gap);border-radius:18px;border:1px solid #24244a;box-shadow:var(--shadow)}
+  .tile{width:64px;height:64px;display:flex;align-items:center;justify-content:center;font-size:34px;line-height:1;background:var(--tile);border-radius:var(--radius);border:1px solid #2b2b55;cursor:pointer;user-select:none;transition:.12s transform,.12s background,.12s box-shadow}
+  .tile:hover{background:var(--tile-hover)}
+  .tile.selected{background:var(--tile-selected);box-shadow:0 0 0 2px #7e5cef inset}
+  .tile.clearing{animation:pop .35s both}
+  @keyframes pop{0%{transform:scale(1)} 30%{transform:scale(1.15)} 100%{transform:scale(.1);opacity:0}}
+  .tile.empty{visibility:hidden}
+  footer{opacity:.8;text-align:center;margin:16px 0}
+  .bar{display:flex;gap:8px;flex-wrap:wrap}
+  .meter{position:relative;height:12px;background:#1b1b36;border:1px solid #2a2a52;border-radius:999px;overflow:hidden;min-width:180px}
+  .fill{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,#ffb454,#ff6b6b)}
+  .combo{color:var(--green);font-weight:900}
+  .dim{opacity:.7}
+  .overlay{
+    position:fixed;inset:0;background:rgba(6,6,14,.75);display:none;align-items:center;justify-content:center;padding:20px;z-index:10
+  }
+  .dialog{max-width:520px;width:100%;background:linear-gradient(180deg,#161634,#0e0e22);border:1px solid #2a2a58;border-radius:18px;box-shadow:var(--shadow);padding:22px}
+  .dialog h2{margin-top:0}
+  .levels{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:10px}
+  .lv{padding:12px 14px;border-radius:12px;background:#1b1b3a;border:1px solid #2a2a58;cursor:pointer;text-align:center;font-weight:800}
+  .lv:hover{filter:brightness(1.08)}
+  .hidden{display:none !important}
+  .hint-line{
+    position:absolute;pointer-events:none;z-index:5;
+    stroke:#7ee8fa;stroke-width:6;stroke-linejoin:round;stroke-linecap:round;
+    filter:drop-shadow(0 0 10px rgba(126,232,250,.6));
+  }
+  /* Responsive size tweak */
+  @media (max-width:600px) {
+    .tile{width:52px;height:52px;font-size:28px}
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="title">
+      <span class="moon">🌕</span>
+      <span>万圣节连连看</span>
+      <span class="dim">（最多两次拐弯）</span>
+    </div>
+    <div class="panel">
+      <span class="badge" id="score">得分 0</span>
+      <span class="badge" id="combo">连击 x1</span>
+      <span class="badge">关卡 <span id="lvLabel">1</span></span>
+      <div class="meter"><div class="fill" id="timeFill"></div></div>
+      <div class="bar">
+        <button class="btn" id="btnHint">提示</button>
+        <button class="btn secondary" id="btnShuffle">洗牌</button>
+        <button class="btn ghost" id="btnRestart">重开</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="grid-wrap">
+    <div class="grid" id="grid"></div>
+  </div>
+  <svg id="lines" width="0" height="0" class="hint-svg" style="position:absolute;inset:0;"></svg>
+
+  <footer>🎃 提示：点击两张相同图标，若路径不超过两次拐弯且不被阻挡即可消除。</footer>
+</div>
+
+<!-- 开始与结算弹窗 -->
+<div class="overlay" id="startOverlay" style="display:flex;">
+  <div class="dialog">
+    <h2>万圣夜开始啦 👻</h2>
+    <p class="dim">选择关卡并开始你的消除之夜。每关限时，支持提示与洗牌。</p>
+    <div class="levels" id="levels"></div>
+  </div>
+</div>
+
+<div class="overlay" id="endOverlay">
+  <div class="dialog" id="endDialog">
+    <h2 id="endTitle">通关！</h2>
+    <p id="endStats" class="dim"></p>
+    <div class="bar" style="margin-top:10px">
+      <button class="btn" id="btnNext">下一关</button>
+      <button class="btn ghost" id="btnAgain">再玩一次</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/** ------- 配置 ------- **/
+const EMOJIS = ["🎃","👻","🦇","🕷️","🕸️","🍬","💀","🐈‍⬛","🧙‍♀️","🍭","📚","🧛"]; // 可替换为图片
+const LEVELS = [
+  { rows:6, cols:6, kinds:4,  time:30 },
+  { rows:7, cols:8, kinds:6,  time:40 },
+  { rows:8, cols:10,kinds:8,  time:50 },
+  { rows:10,cols:12,kinds:10, time:60 },
+];
+/** ------- 状态 ------- **/
+let state = {
+  lv: 0,
+  rows: 0, cols: 0,
+  board: [], // 带外框的二维数组（数值：0空，>0为种类索引）
+  picked: null,
+  score: 0,
+  combo: 1,
+  lastMatchTime: 0,
+  timeLeft: 0,
+  timerId: null,
+  lock: false,
+};
+/** ------- DOM ------- **/
+const gridEl = document.getElementById('grid');
+const scoreEl = document.getElementById('score');
+const comboEl = document.getElementById('combo');
+const lvLabel = document.getElementById('lvLabel');
+const timeFill = document.getElementById('timeFill');
+const startOverlay = document.getElementById('startOverlay');
+const endOverlay = document.getElementById('endOverlay');
+const endTitle = document.getElementById('endTitle');
+const endStats = document.getElementById('endStats');
+const btnHint = document.getElementById('btnHint');
+const btnShuffle = document.getElementById('btnShuffle');
+const btnRestart = document.getElementById('btnRestart');
+const btnNext = document.getElementById('btnNext');
+const btnAgain = document.getElementById('btnAgain');
+const levelsEl = document.getElementById('levels');
+const svgLines = document.getElementById('lines');
+
+function randInt(n){ return Math.floor(Math.random()*n); }
+
+/** 初始化关卡按钮 */
+(function initLevels(){
+  LEVELS.forEach((lv,i)=>{
+    const d=document.createElement('button');
+    d.className='lv';
+    d.innerHTML=`Lv.${i+1}<br><span class="dim">${lv.rows}×${lv.cols} / ${lv.kinds}种 / ${lv.time}s</span>`;
+    d.onclick=()=>startGame(i);
+    levelsEl.appendChild(d);
+  });
+})();
+
+/** 开始/重开/下一关 */
+function startGame(idx){
+  state.lv = idx;
+  const cfg = LEVELS[idx];
+  state.rows = cfg.rows;
+  state.cols = cfg.cols;
+  state.score = 0;
+  state.combo = 1;
+  state.picked = null;
+  state.timeLeft = cfg.time;
+  updateHud();
+  buildBoard(cfg);
+  renderBoard();
+  startTimer();
+  startOverlay.style.display='none';
+  endOverlay.style.display='none';
+}
+btnRestart.onclick = ()=>startGame(state.lv);
+btnNext.onclick = ()=> startGame(Math.min(state.lv+1, LEVELS.length-1));
+btnAgain.onclick = ()=> startGame(state.lv);
+
+/** 构建带外框的棋盘（连连看常用：四周加一圈空白便于判断外部路径） */
+function buildBoard(cfg){
+  const {rows, cols, kinds} = cfg;
+  const total = rows * cols;
+  // 保证偶数：配成对
+  const tileCount = total % 2 === 0 ? total : total - 1;
+  let pool = [];
+  // 随机生成成对的种类
+  for(let i=0;i<tileCount/2;i++){
+    const kind = 1 + randInt(kinds); // 从1开始（0代表空）
+    pool.push(kind, kind);
+  }
+  // 若总格是奇数，留一个空
+  if(total > tileCount) pool.push(0);
+
+  // 打乱
+  for(let i=pool.length-1;i>0;i--){
+    const j=randInt(i+1); [pool[i],pool[j]]=[pool[j],pool[i]];
+  }
+
+  // 创建内层数组
+  const inner = [];
+  let p=0;
+  for(let r=0;r<rows;r++){
+    inner[r]=[];
+    for(let c=0;c<cols;c++){
+      inner[r][c] = pool[p++] ?? 0;
+    }
+  }
+
+  // 外圈填充0
+  const R = rows+2, C = cols+2;
+  state.board = Array.from({length:R}, (_,r)=>
+    Array.from({length:C}, (_,c)=>{
+      if(r===0||c===0||r===R-1||c===C-1) return 0;
+      return inner[r-1][c-1];
+    })
+  );
+
+  // 若无解，打乱直至可解（简单保底）
+  if(!existsAnyPair()) shuffleUntilSolvable(40);
+}
+
+/** 渲染网格 */
+function renderBoard(){
+  // 网格样式
+  gridEl.style.gridTemplateColumns = `repeat(${state.cols}, 1fr)`;
+  gridEl.innerHTML='';
+  svgLines.innerHTML=''; // 清除提示线
+  svgLines.setAttribute('width', window.innerWidth);
+  svgLines.setAttribute('height', window.innerHeight);
+
+  for(let r=1;r<=state.rows;r++){
+    for(let c=1;c<=state.cols;c++){
+      const v=state.board[r][c];
+      const tile=document.createElement('div');
+      tile.className='tile'+(v===0?' empty':'');
+      tile.dataset.r=r; tile.dataset.c=c;
+      if(v>0){ tile.textContent = EMOJIS[v-1]; }
+      tile.onclick=()=>onPick(r,c,tile);
+      gridEl.appendChild(tile);
+    }
+  }
+  lvLabel.textContent = (state.lv+1);
+}
+
+/** 计时器 */
+function startTimer(){
+  clearInterval(state.timerId);
+  const total = LEVELS[state.lv].time;
+  state.timeLeft = total;
+  timeFill.style.width='0%';
+  state.timerId = setInterval(()=>{
+    state.timeLeft -= 1;
+    const pct = Math.max(0, (total - (total - state.timeLeft)) / total);
+    timeFill.style.width = `${(state.timeLeft/total)*100}%`;
+    if(state.timeLeft<=0){
+      clearInterval(state.timerId);
+      showEnd(false);
+    }
+  },1000);
+}
+
+/** HUD */
+function updateHud(){
+  scoreEl.textContent = `得分 ${state.score}`;
+  comboEl.textContent = `连击 x${state.combo}`;
+}
+
+/** 点击处理 */
+function onPick(r,c,el){
+  const v = state.board[r][c];
+  if(state.lock || v===0) return;
+
+  // 如果之前没选或选的是同一张
+  if(!state.picked){
+    state.picked = {r,c,el,v};
+    el.classList.add('selected');
+    return;
+  }
+  if(state.picked.r===r && state.picked.c===c) return;
+
+  // 不是同类直接切换选择
+  if(state.picked.v !== v){
+    state.picked.el.classList.remove('selected');
+    state.picked = {r,c,el,v};
+    el.classList.add('selected');
+    return;
+  }
+
+  // 相同：检测是否可连
+  const a = {r:state.picked.r, c:state.picked.c};
+  const b = {r, c};
+  const path = canConnect(a,b);
+  if(path){
+    // 动画 & 清空
+    state.lock = true;
+    drawPath(path);
+    state.picked.el.classList.remove('selected');
+    state.picked.el.classList.add('clearing');
+    el.classList.add('clearing');
+
+    setTimeout(()=>{
+      state.board[a.r][a.c]=0;
+      state.board[b.r][b.c]=0;
+      // 更新两格DOM为empty
+      state.picked.el.className='tile empty';
+      state.picked.el.textContent='';
+      el.className='tile empty';
+      el.textContent='';
+      clearPath();
+      state.lock=false;
+      state.picked=null;
+
+      // 计分与连击
+      const now = performance.now();
+      state.combo = (now - state.lastMatchTime < 1800) ? Math.min(state.combo+1, 10) : 1;
+      state.lastMatchTime = now;
+      let gain = 10 * state.combo;
+      state.score += gain;
+      updateHud();
+
+      // 检查是否清空
+      if(isCleared()){
+        showEnd(true);
+      }else{
+        // 若无解，自动洗牌
+        if(!existsAnyPair()) shuffleUntilSolvable(40,true);
+      }
+    },260);
+  }else{
+    // 不可连：切换选择
+    state.picked.el.classList.remove('selected');
+    state.picked = {r,c,el,v};
+    el.classList.add('selected');
+  }
+}
+
+/** 直线是否畅通 */
+function clearLine(a,b){
+  if(a.r===b.r){
+    const r=a.r, c1=Math.min(a.c,b.c), c2=Math.max(a.c,b.c);
+    for(let c=c1+1;c<c2;c++) if(state.board[r][c]!==0) return false;
+    return true;
+  }
+  if(a.c===b.c){
+    const c=a.c, r1=Math.min(a.r,b.r), r2=Math.max(a.r,b.r);
+    for(let r=r1+1;r<r2;r++) if(state.board[r][c]!==0) return false;
+    return true;
+  }
+  return false;
+}
+
+/** 可连判定：0转、1转、2转（典型连连看规则） */
+function canConnect(a,b){
+  if(a.r===b.r && a.c===b.c) return null;
+
+  // 0转
+  if((a.r===b.r || a.c===b.c) && clearLine(a,b)){
+    return [a,b];
+  }
+  // 1转：两个拐角 (a.r,b.c) 或 (b.r,a.c)
+  const p1 = {r:a.r, c:b.c};
+  if(state.board[p1.r][p1.c]===0 && clearLine(a,p1) && clearLine(p1,b)){
+    return [a,p1,b];
+  }
+  const p2 = {r:b.r, c:a.c};
+  if(state.board[p2.r][p2.c]===0 && clearLine(a,p2) && clearLine(p2,b)){
+    return [a,p2,b];
+  }
+  // 2转：从a向四个方向延伸，寻找中转点
+  const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+  for(const [dr,dc] of dirs){
+    let r=a.r, c=a.c;
+    while(true){
+      r+=dr; c+=dc;
+      if(r<0||c<0||r>=state.board.length||c>=state.board[0].length) break;
+      if(state.board[r][c]!==0) break; // 遇阻
+      const p = {r, c};
+      // 尝试 p -> b 一转
+      // 同行/同列直通 或 1转（通过 (r,b.c) / (b.r,c)）
+      if((p.r===b.r && clearLine(p,b)) || (p.c===b.c && clearLine(p,b))){
+        return [a,p,b];
+      }
+      const q1={r:p.r,c:b.c}, q2={r:b.r,c:p.c};
+      if(state.board[q1.r]?.[q1.c]===0 && clearLine(p,q1) && clearLine(q1,b)) return [a,p,q1,b];
+      if(state.board[q2.r]?.[q2.c]===0 && clearLine(p,q2) && clearLine(q2,b)) return [a,p,q2,b];
+    }
+  }
+  return null;
+}
+
+/** 是否已清空（除外框） */
+function isCleared(){
+  for(let r=1;r<=state.rows;r++)
+    for(let c=1;c<=state.cols;c++)
+      if(state.board[r][c]!==0) return false;
+  return true;
+}
+
+/** 是否存在任意可连的一对（用于死局检测/提示） */
+function existsAnyPair(){
+  const coords=[];
+  for(let r=1;r<=state.rows;r++)
+    for(let c=1;c<=state.cols;c++)
+      if(state.board[r][c]>0) coords.push({r,c,v:state.board[r][c]});
+  // 用哈希按种类分组，减少组合
+  const groups = new Map();
+  for(const t of coords){
+    if(!groups.has(t.v)) groups.set(t.v,[]);
+    groups.get(t.v).push(t);
+  }
+  for(const list of groups.values()){
+    for(let i=0;i<list.length;i++){
+      for(let j=i+1;j<list.length;j++){
+        if(canConnect(list[i], list[j])) return true;
+      }
+    }
+  }
+  return false;
+}
+
+/** 洗牌（保持非空格打散），尝试直到可解或达到次数 */
+function shuffleBoard(){
+  const cells=[];
+  for(let r=1;r<=state.rows;r++)
+    for(let c=1;c<=state.cols;c++)
+      if(state.board[r][c]>0) cells.push(state.board[r][c]);
+  // 打乱
+  for(let i=cells.length-1;i>0;i--){ const j=randInt(i+1); [cells[i],cells[j]]=[cells[j],cells[i]]; }
+  // 回填
+  let k=0;
+  for(let r=1;r<=state.rows;r++)
+    for(let c=1;c<=state.cols;c++)
+      if(state.board[r][c]>0) state.board[r][c]=cells[k++];
+
+  // 重新渲染emoji
+  let idx=0;
+  [...gridEl.children].forEach((el)=>{
+    const r = 1 + Math.floor(idx/state.cols);
+    const c = 1 + (idx%state.cols);
+    idx++;
+    const v = state.board[r][c];
+    if(v>0){ el.className='tile'; el.textContent=EMOJIS[v-1]; }
+    else { el.className='tile empty'; el.textContent=''; }
+  });
+}
+
+function shuffleUntilSolvable(limit=30, showTip=false){
+  for(let i=0;i<limit;i++){
+    if(existsAnyPair()) { if(showTip) toast('无解？已自动洗牌'); return; }
+    shuffleBoard();
+  }
+}
+
+/** 画提示线 */
+function drawPath(points){
+  clearPath();
+  // 把格子中心映射到屏幕坐标
+  const rect = gridEl.getBoundingClientRect();
+  const gap = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--grid-gap')) || 8;
+  const tile = gridEl.querySelector('.tile:not(.empty)');
+  const w = tile ? tile.getBoundingClientRect().width : 64;
+  const h = tile ? tile.getBoundingClientRect().height : 64;
+
+  const toXY = (p)=>{
+    const x = rect.left + (p.c-1)*(w+gap) + w/2 + gap; // grid padding
+    const y = rect.top  + (p.r-1)*(h+gap) + h/2 + gap;
+    return {x,y};
+  };
+  const path = points.map(toXY);
+
+  const poly = document.createElementNS('http://www.w3.org/2000/svg','polyline');
+  poly.setAttribute('points', path.map(p=>`${p.x},${p.y}`).join(' '));
+  poly.classList.add('hint-line');
+  svgLines.appendChild(poly);
+}
+function clearPath(){ svgLines.innerHTML=''; }
+
+/** 提示：找一对可连并闪线 */
+function hint(){
+  const coords=[];
+  for(let r=1;r<=state.rows;r++)
+    for(let c=1;c<=state.cols;c++)
+      if(state.board[r][c]>0) coords.push({r,c,v:state.board[r][c]});
+  const groups = new Map();
+  for(const t of coords){
+    if(!groups.has(t.v)) groups.set(t.v,[]);
+    groups.get(t.v).push(t);
+  }
+  for(const list of groups.values()){
+    for(let i=0;i<list.length;i++){
+      for(let j=i+1;j<list.length;j++){
+        const path = canConnect(list[i], list[j]);
+        if(path){
+          drawPath(path);
+          setTimeout(clearPath, 900);
+          return;
+        }
+      }
+    }
+  }
+  toast('当前无解，建议洗牌');
+}
+
+/** 简易吐司 */
+let toastTimer=null;
+function toast(msg){
+  clearTimeout(toastTimer);
+  let el = document.getElementById('toast');
+  if(!el){
+    el = document.createElement('div');
+    el.id='toast';
+    el.style.position='fixed';
+    el.style.left='50%'; el.style.top='14px'; el.style.transform='translateX(-50%)';
+    el.style.padding='10px 14px'; el.style.borderRadius='12px';
+    el.style.background='rgba(20,20,50,.9)'; el.style.border='1px solid #2a2a58';
+    el.style.color='#fff'; el.style.fontWeight='700'; el.style.boxShadow='var(--shadow)';
+    el.style.zIndex='20';
+    document.body.appendChild(el);
+  }
+  el.textContent=msg;
+  el.style.display='block';
+  toastTimer=setTimeout(()=>{ el.style.display='none'; }, 1200);
+}
+
+/** 结束弹窗 */
+function showEnd(win){
+  endTitle.textContent = win ? '通关！🎉' : '时间到！';
+  endStats.textContent = `得分：${state.score}｜连击：x${state.combo}`;
+  endOverlay.style.display='flex';
+  clearInterval(state.timerId);
+}
+
+/** 事件绑定 */
+btnHint.onclick = ()=>hint();
+btnShuffle.onclick = ()=>{
+  shuffleBoard();
+  if(!existsAnyPair()) shuffleUntilSolvable(60,true);
+};
+btnRestart.onclick = ()=>startGame(state.lv);
+
+/** 启动 */
+window.addEventListener('load', ()=>{
+  updateHud();
+});
+
+/** ------- 可选：替换为图片资源 ------- **
+ * 想用图片而不是 Emoji？
+ * 1. 将 EMOJIS 替换为图片URL数组。
+ * 2. 渲染时用 el.innerHTML = `<img src="..." alt="" />`
+ * 3. 给 .tile img 设置 max-width:80%;max-height:80%;
+ */
+</script>
+</body>
+</html>
