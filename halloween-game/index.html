@@ -22,7 +22,7 @@
   .badge{padding:8px 12px;border-radius:999px;background:#1b1b3a;border:1px solid #2a2a58;font-weight:800;transition:.2s background,.2s border-color,.2s transform}
   .btn{appearance:none;border:0;background:linear-gradient(180deg,#ffb454,#ff9640);color:#3b1800;padding:10px 14px;border-radius:12px;font-weight:900;cursor:pointer;box-shadow:inset 0 -2px 0 rgba(0,0,0,.15),0 8px 16px rgba(0,0,0,.25);transition:.15s transform,.15s filter}
   .btn:active{transform:translateY(1px)}
-  .btn.ghost{background:#1f1f3f;color:#c5c6ff;border:1px solid #2f2f63}
+  .btn.ghost{background:#1f1f3f;color:#c5c6ff;border:1px solid #2a2a63}
   .meter{position:relative;height:14px;background:#1b1b36;border:1px solid #2a2a52;border-radius:999px;overflow:hidden;min-width:200px}
   .fill{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,var(--green),#86efac);transition:width .35s ease, background .2s ease, filter .2s ease}
   .stage-wrap{margin:14px 0}
@@ -130,6 +130,7 @@
 /** ---------- 配置（3 关 + 低难度） ---------- */
 const EMOJIS=["🎃","👻","🦇","🕷️","🕸️","🍬","💀","🐈‍⬛","🧙‍♀️","🍭"];
 const LEVELS=[{pairs:12,kinds:4,time:45},{pairs:16,kinds:6,time:60},{pairs:20,kinds:8,time:75}];
+const TIME_SCALE = 2/3; // 关卡时间缩短为原来的 2/3
 const TILE_SIZE=68;
 
 /** ---------- 清脆点击 & 通关音效（WebAudio） ---------- */
@@ -143,6 +144,8 @@ function blip({fStart=1900,fEnd=900,dur=70,type='square',gain=0.045,when=0}) {
 }
 function sfxClick(){ blip({fStart:2000,fEnd:1200,dur:60,type:'triangle',gain:.05}); blip({fStart:3000,fEnd:1800,dur:40,type:'square',gain:.03,when:10}); }
 function sfxWin(){ [800,1000,1200,1600].forEach((f,i)=>blip({fStart:f,fEnd:f/1.5,dur:120,type:'triangle',gain:.05,when:i*100})); }
+// 奖励音（短促上扬）
+function sfxBonus(){ blip({fStart:1400,fEnd:2200,dur:90,type:'triangle',gain:.045}); }
 
 /** ---------- 状态 ---------- */
 let state={
@@ -245,11 +248,12 @@ function updateTimerUI(){
   }
 }
 
-/** 关卡选择（3关） */
+/** 关卡选择（3关，显示缩短后时间） */
 LEVELS.forEach((lv,i)=>{
   const b=document.createElement('button');
   b.className='lv';
-  b.innerHTML=`Lv.${i+1}<br><span class="dim">${lv.pairs*2}张 / ${lv.kinds}种 / ${lv.time}s</span>`;
+  const t = Math.max(1, Math.round(lv.time * TIME_SCALE));
+  b.innerHTML=`Lv.${i+1}<br><span class="dim">${lv.pairs*2}张 / ${lv.kinds}种 / ${t}s</span>`;
   b.onclick=()=>{ ensureAC(); startGame(i); };
   levelsEl.appendChild(b);
 });
@@ -263,7 +267,8 @@ function startGame(i){
   state.picked=null; state.startTime=Date.now();
   scoreEl.textContent='得分 0'; comboEl.textContent='连击 x1'; lvLabel.textContent=i+1;
   buildScene(cfg);
-  startTimer(cfg.time);          // 启动倒计时
+  const seconds = Math.max(1, Math.round(cfg.time * TIME_SCALE)); // 使用缩短后的时间
+  startTimer(seconds);
   startOverlay.style.display='none';
   endOverlay.style.display='none';
 }
@@ -290,7 +295,7 @@ function buildScene(cfg){
   }
 }
 
-/** 简化配对逻辑：相同即消除 */
+/** 简化配对逻辑：相同即消除（前两关：每消一对 +1 秒，最多回满） */
 function onPick(el,v){
   sfxClick();
   if(state.lock) return;
@@ -311,7 +316,20 @@ function onPick(el,v){
     a.remove(); b.remove();
     state.tiles=state.tiles.filter(t=>t.el!==a && t.el!==b);
     state.lock=false; state.picked=null;
+
+    // 得分
     state.score+=10; scoreEl.textContent=`得分 ${state.score}`;
+
+    // ✅ 奖励时间：仅前两关（lv=0,1），每消一对 +1 秒；上限不超过本关最大时长
+    if(state.lv < 2){
+      const before = state.timeLeft;
+      state.timeLeft = Math.min(timerTotal, state.timeLeft + 1);
+      if(state.timeLeft > before){
+        sfxBonus();
+        updateTimerUI(); // 立刻刷新进度条/状态
+      }
+    }
+
     if(state.tiles.length===0) showEnd(true);
   },250);
 }
