@@ -28,32 +28,32 @@
   .fill{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,#ffb454,#ff6b6b)}
   .dim{opacity:.75}
 
-  /* 游戏区：自由布局 */
   .stage-wrap{margin:14px 0}
   .stage{
-    position:relative;
-    width:100%;
-    height: clamp(420px, 60vw, 640px);
+    position:relative;width:100%;height: clamp(420px, 60vw, 640px);
     background:linear-gradient(180deg,rgba(20,20,50,.65),rgba(10,10,30,.65));
-    border:1px solid #26265a;border-radius:18px;box-shadow:var(--shadow);
-    overflow:hidden;
+    border:1px solid #26265a;border-radius:18px;box-shadow:var(--shadow);overflow:hidden;
   }
   .tile{
-    position:absolute; display:flex; align-items:center; justify-content:center;
+    position:absolute;display:flex;align-items:center;justify-content:center;
     width:68px;height:68px;font-size:38px;line-height:1;
-    background:var(--tile); border:1px solid #2a2a58; border-radius:18px; cursor:pointer;
-    transition:.12s transform,.12s filter,.12s box-shadow,.12s background; user-select:none;
+    background:var(--tile);border:1px solid #2a2a58;border-radius:18px;cursor:pointer;
+    transition:.12s transform,.12s filter,.12s box-shadow,.12s background;user-select:none;
   }
   .tile:hover{background:var(--tile-hover)}
-  .tile.selected{background:var(--tile-selected); box-shadow:0 0 0 3px var(--violet) inset}
+  .tile.selected{background:var(--tile-selected);box-shadow:0 0 0 3px var(--violet) inset}
   .tile.pulse{animation:pulse .8s infinite}
   @keyframes pulse{0%{filter:drop-shadow(0 0 0 rgba(126,232,250,0))}60%{filter:drop-shadow(0 0 10px rgba(126,232,250,.6))}100%{filter:drop-shadow(0 0 0 rgba(126,232,250,0))}}
   .tile.pop{animation:pop .35s both}
   @keyframes pop{0%{transform:scale(1)}30%{transform:scale(1.15)}100%{transform:scale(.1);opacity:0}}
+
   .overlay{position:fixed;inset:0;background:rgba(6,6,14,.75);display:none;align-items:center;justify-content:center;padding:20px;z-index:10}
-  .dialog{max-width:520px;width:100%;background:linear-gradient(180deg,#161634,#0e0e22);border:1px solid #2a2a58;border-radius:18px;box-shadow:var(--shadow);padding:22px}
+  .dialog{max-width:640px;width:100%;background:linear-gradient(180deg,#161634,#0e0e22);border:1px solid #2a2a58;border-radius:18px;box-shadow:var(--shadow);padding:22px}
   .levels{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:10px}
   .lv{padding:12px 14px;border-radius:12px;background:#1b1b3a;border:1px solid #2a2a58;cursor:pointer;text-align:center;font-weight:800}
+  .cert-wrap{margin-top:12px}
+  .cert-wrap img{width:100%;border-radius:12px;border:1px solid #2a2a58;display:block}
+  .dl-bar{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap}
   footer{opacity:.8;text-align:center;margin:10px 0}
   @media (max-width:600px){.tile{width:58px;height:58px;font-size:32px}}
 </style>
@@ -80,8 +80,8 @@
   <footer>🎃 规则：点击一张图案，再点击任意一张相同图案即可配对消除（无需连线规则）。</footer>
 </div>
 
-<!-- 开始与结算弹窗 -->
-<div class="overlay" id="startOverlay" style="display:flex;">
+<!-- 欢迎页（3关） -->
+<div class="overlay" id="startOverlay">
   <div class="dialog">
     <h2>万圣夜开始啦 👻</h2>
     <p class="dim">选择关卡并开始你的消除之夜。图标会随机散落在场景中。</p>
@@ -89,34 +89,62 @@
   </div>
 </div>
 
-<div class="overlay" id="endOverlay">
+<!-- 结算页 + 证书预览与下载 -->
+<div class="overlay" id="endOverlay" style="display:none;">
   <div class="dialog" id="endDialog">
     <h2 id="endTitle">通关！</h2>
     <p id="endStats" class="dim"></p>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+    <div class="dl-bar">
       <button class="lv" id="btnNext">下一关</button>
       <button class="lv" id="btnAgain">再玩一次</button>
+      <a class="btn" id="btnDownload" download="万圣节证书.png">下载证书.png</a>
+    </div>
+    <div class="cert-wrap">
+      <img id="certImg" alt="证书预览" />
     </div>
   </div>
 </div>
 
 <script>
-/** ---------- 配置（更简单、低难度） ---------- */
+/** ---------- 配置（3 关 + 低难度） ---------- */
 const EMOJIS = ["🎃","👻","🦇","🕷️","🕸️","🍬","💀","🐈‍⬛","🧙‍♀️","🍭"];
 const LEVELS = [
   { pairs: 12, kinds: 4,  time: 45 },  // 24张
   { pairs: 16, kinds: 6,  time: 60 },  // 32张
   { pairs: 20, kinds: 8,  time: 75 },  // 40张
-  { pairs: 24, kinds: 10, time: 90 },  // 48张
 ];
-const TILE_SIZE = 68; // 绝对定位尺寸（与CSS一致）
+const TILE_SIZE = 68;
+
+/** ---------- 简易音效（WebAudio合成） ---------- */
+let AC;
+function ensureAC(){
+  if(!AC){
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    AC = new Ctx();
+  }
+  if(AC.state === 'suspended') AC.resume();
+}
+function tone(freq=440, dur=120, type='sine', gain=0.05, when=0){
+  ensureAC();
+  const t0 = AC.currentTime + when/1000;
+  const osc = AC.createOscillator();
+  const g = AC.createGain();
+  osc.type = type; osc.frequency.value = freq;
+  g.gain.setValueAtTime(0, t0);
+  g.gain.linearRampToValueAtTime(gain, t0 + 0.01);
+  g.gain.exponentialRampToValueAtTime(1e-5, t0 + dur/1000);
+  osc.connect(g).connect(AC.destination);
+  osc.start(t0); osc.stop(t0 + dur/1000 + 0.02);
+}
+function sfxClick(){ tone(220, 40, 'square', 0.04); tone(500, 60, 'triangle', 0.03, 10); }
+function sfxWin(){ [523,659,784,1046].forEach((f,i)=>tone(f, 160, 'triangle', 0.05, i*140)); }
 
 /** ---------- 状态 ---------- */
 let state = {
-  lv: 0, score: 0, combo: 1, lastMatchTime: 0,
-  timeLeft: 0, timerId: null, lock:false,
-  picked: null, // {el, v}
-  tiles: [],    // 每个 {el, v}
+  lv: 0, score: 0, combo: 1, bestCombo: 1,
+  lastMatchTime: 0, timeLeft: 0, timerId: null, lock:false,
+  picked: null, tiles: [],
+  startTime: 0,  // 统计用时
 };
 
 const stage = document.getElementById('stage');
@@ -134,26 +162,32 @@ const btnShuffle = document.getElementById('btnShuffle');
 const btnRestart = document.getElementById('btnRestart');
 const btnNext = document.getElementById('btnNext');
 const btnAgain = document.getElementById('btnAgain');
+const btnDownload = document.getElementById('btnDownload');
+const certImg = document.getElementById('certImg');
 
 function randInt(n){ return Math.floor(Math.random()*n); }
 function randFloat(min,max){ return min + Math.random()*(max-min); }
 
-/** 构建关卡按钮 */
+/** 构建 3 个关卡按钮 */
 (function initLevels(){
   LEVELS.forEach((lv,i)=>{
     const d=document.createElement('button');
     d.className='lv';
     d.innerHTML=`Lv.${i+1}<br><span class="dim">${lv.pairs*2}张 / ${lv.kinds}种 / ${lv.time}s</span>`;
-    d.onclick=()=>startGame(i);
+    d.onclick=()=>{ ensureAC(); startGame(i); };
     levelsEl.appendChild(d);
   });
+  startOverlay.style.display='flex';
+  document.body.addEventListener('pointerdown', ensureAC, {once:true});
 })();
 
 /** 开始/重开/下一关 */
 function startGame(idx){
   state.lv = idx;
   const cfg = LEVELS[idx];
-  state.score = 0; state.combo = 1; state.picked = null; state.lock=false;
+  state.score = 0; state.combo = 1; state.bestCombo = 1;
+  state.picked = null; state.lock=false;
+  state.startTime = Date.now();
   buildScene(cfg);
   updateHud();
   startTimer(cfg.time);
@@ -161,32 +195,25 @@ function startGame(idx){
   endOverlay.style.display='none';
   lvLabel.textContent = (idx+1);
 }
-btnRestart.onclick = ()=>startGame(state.lv);
-btnNext.onclick = ()=> startGame(Math.min(state.lv+1, LEVELS.length-1));
-btnAgain.onclick = ()=> startGame(state.lv);
+btnRestart.onclick = ()=>{ ensureAC(); startGame(state.lv); };
+btnNext.onclick = ()=> { ensureAC(); startGame(Math.min(state.lv+1, LEVELS.length-1)); };
+btnAgain.onclick = ()=> { ensureAC(); startGame(state.lv); };
 
 /** 随机散落生成：不网格，随机坐标，尽量避免严重重叠 */
 function buildScene(cfg){
   stage.innerHTML='';
   state.tiles = [];
-  // 生成配对池
   const pool = [];
-  for(let i=0;i<cfg.pairs;i++){
-    const kind = randInt(cfg.kinds); // 0..k-1
-    pool.push(kind, kind);
-  }
-  // 打乱
+  for(let i=0;i<cfg.pairs;i++){ const kind = randInt(cfg.kinds); pool.push(kind, kind); }
   for(let i=pool.length-1;i>0;i--){ const j=randInt(i+1); [pool[i],pool[j]]=[pool[j],pool[i]]; }
 
-  const pad = 10; // 边距
+  const pad = 10;
   const rect = stage.getBoundingClientRect();
   const W = rect.width, H = rect.height;
   const R = TILE_SIZE;
 
   function placeOne(el){
-    // 简单“防重叠”：随机尝试多次，要求与已放置中心距离>阈值
-    const tries = 50;
-    let x=0,y=0,ok=false;
+    const tries = 50; let x=0,y=0,ok=false;
     for(let t=0;t<tries;t++){
       x = randFloat(pad, Math.max(pad, W - R - pad));
       y = randFloat(pad, Math.max(pad, H - R - pad));
@@ -196,14 +223,13 @@ function buildScene(cfg){
         const nx = stage.getBoundingClientRect().left + x + R/2;
         const ny = stage.getBoundingClientRect().top  + y + R/2;
         const dist = Math.hypot(nx-cx, ny-cy);
-        return dist > R*0.9; // 允许轻微重叠，但尽量分散
+        return dist > R*0.9;
       });
       if(ok) break;
     }
     el.style.left = x+'px'; el.style.top = y+'px';
   }
 
-  // 放置
   for(let i=0;i<pool.length;i++){
     const v = pool[i];
     const el = document.createElement('div');
@@ -218,18 +244,17 @@ function buildScene(cfg){
   }
 }
 
-/** 点击逻辑：只要相同即消除 */
+/** 点击逻辑：只要相同即消除（带点击音） */
 function onPick(el, v){
+  sfxClick();
   if(state.lock) return;
   if(!state.picked){
     state.picked = {el, v};
     el.classList.add('selected');
     return;
   }
-  // 点到自己则忽略
   if(state.picked.el === el) return;
 
-  // 不同：切换选择
   if(state.picked.v !== v){
     state.picked.el.classList.remove('selected');
     state.picked = {el, v};
@@ -240,8 +265,7 @@ function onPick(el, v){
   // 相同：直接消除
   state.lock = true;
   const a = state.picked.el, b = el;
-  a.classList.remove('selected');
-  a.classList.add('pop'); b.classList.add('pop');
+  a.classList.remove('selected'); a.classList.add('pop'); b.classList.add('pop');
 
   setTimeout(()=>{
     a.remove(); b.remove();
@@ -251,6 +275,7 @@ function onPick(el, v){
     // 计分/连击
     const now = performance.now();
     state.combo = (now - state.lastMatchTime < 1800) ? Math.min(state.combo+1, 10) : 1;
+    state.bestCombo = Math.max(state.bestCombo, state.combo);
     state.lastMatchTime = now;
     state.score += 10 * state.combo;
     updateHud();
@@ -287,7 +312,7 @@ function shuffle(){
   }
 }
 
-/** 计时器/HUD/结算 */
+/** 计时器/HUD/结算（通关音效 + 生成证书） */
 function startTimer(total){
   clearInterval(state.timerId);
   state.timeLeft = total;
@@ -306,20 +331,112 @@ function updateHud(){
   comboEl.textContent = `连击 x${state.combo}`;
 }
 function showEnd(win){
+  if(win) sfxWin();
+  const elapsed = Math.max(0, Math.round((Date.now() - state.startTime)/1000));
   endTitle.textContent = win ? '通关！🎉' : '时间到！';
-  endStats.textContent = `得分：${state.score}｜连击：x${state.combo}`;
+  endStats.textContent = `得分：${state.score}｜最高连击：x${state.bestCombo}｜用时：${elapsed}s`;
   endOverlay.style.display='flex';
   clearInterval(state.timerId);
+
+  // 生成证书图片
+  const dataUrl = generateCertificate({
+    win,
+    score: state.score,
+    bestCombo: state.bestCombo,
+    elapsed,
+    level: state.lv + 1,
+    dateStr: new Date().toLocaleString('zh-CN', { hour12:false })
+  });
+  certImg.src = dataUrl;
+  btnDownload.href = dataUrl;
 }
 
-/** 事件绑定 */
-btnHint.onclick = ()=>hint();
-btnShuffle.onclick = ()=>shuffle();
-btnRestart.onclick = ()=>startGame(state.lv);
+/** 证书生成：Canvas 绘制 -> PNG dataURL */
+function generateCertificate({win, score, bestCombo, elapsed, level, dateStr}){
+  const w = 1000, h = 700;
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
 
-/** 入口 */
+  // 背景渐变 + 装饰
+  const g = ctx.createLinearGradient(0,0,0,h);
+  g.addColorStop(0, '#1a1440'); g.addColorStop(1,'#080816');
+  ctx.fillStyle = g; ctx.fillRect(0,0,w,h);
+
+  // 边框
+  ctx.strokeStyle = '#7e5cef';
+  ctx.lineWidth = 8;
+  ctx.strokeRect(22,22,w-44,h-44);
+
+  // 月亮
+  ctx.beginPath(); ctx.arc(w-120, 120, 60, 0, Math.PI*2);
+  ctx.fillStyle = '#ffe29a'; ctx.fill();
+
+  // 标题
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '700 52px system-ui,Segoe UI,Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('万圣节配对挑战 证书', w/2, 120);
+
+  // 徽章/状态
+  ctx.font = '700 42px system-ui,Segoe UI,Arial';
+  ctx.fillStyle = win ? '#2dd4bf' : '#ff6b6b';
+  ctx.fillText(win ? '🎉 通关认证' : '⏳ 挑战结束', w/2, 190);
+
+  // 主体卡片
+  roundedRect(ctx, 120, 220, w-240, 300, 20, '#171734', '#2a2a58');
+  // Stats
+  ctx.fillStyle = '#cfd0ff';
+  ctx.font = '600 30px system-ui,Segoe UI,Arial';
+  ctx.textAlign = 'left';
+  const left = 160, top = 280, lh = 58;
+  ctx.fillText(`关卡：Lv.${level}`, left, top);
+  ctx.fillText(`得分：${score}`, left, top+lh);
+  ctx.fillText(`最高连击：x${bestCombo}`, left, top+lh*2);
+  ctx.fillText(`用时：${elapsed}s`, left, top+lh*3);
+
+  // 右侧大表情
+  ctx.textAlign = 'center';
+  ctx.font = '100px Apple Color Emoji,Segoe UI Emoji, Noto Color Emoji';
+  ctx.fillText(win ? '🎃' : '👻', w-220, 380);
+
+  // 日期与签名
+  ctx.textAlign = 'left';
+  ctx.font = '600 24px system-ui,Segoe UI,Arial';
+  ctx.fillStyle = '#9aa0ff';
+  ctx.fillText(`生成时间：${dateStr}`, 130, 560);
+  ctx.fillText(`颁发单位：Halloween Matcher`, 130, 600);
+
+  // 底部提示
+  ctx.textAlign = 'center';
+  ctx.font = '600 22px system-ui,Segoe UI,Arial';
+  ctx.fillStyle = '#a7ffea';
+  ctx.fillText('恭喜获得本次挑战证书！可分享至朋友圈/群聊～', w/2, 650);
+
+  return c.toDataURL('image/png');
+
+  // 工具：圆角卡片
+  function roundedRect(ctx, x,y,w,h,r, fill, stroke){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);
+    ctx.arcTo(x,y,x+w,y,r);
+    ctx.closePath();
+    ctx.fillStyle = fill; ctx.fill(); 
+    ctx.lineWidth = 2; ctx.strokeStyle = stroke; ctx.stroke();
+  }
+}
+
+/** 计时/按钮绑定 */
+btnHint.onclick = ()=>{ ensureAC(); hint(); };
+btnShuffle.onclick = ()=>{ ensureAC(); shuffle(); };
+btnRestart.onclick = ()=>{ ensureAC(); startGame(state.lv); };
+
+/** 入口：欢迎页显示 */
 window.addEventListener('load', ()=>{
-  // 关卡按钮（已创建），等待选择
+  startOverlay.style.display='flex';
 });
 </script>
 </body>
