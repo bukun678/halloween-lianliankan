@@ -6,7 +6,6 @@
 <title>圣诞节配对挑战</title>
 <style>
   :root{
-    /* 圣诞主题配色：冷青 + 圣诞红/绿 */
     --bg:#071116; --text:#f7f7fb;
     --panel:#0d2b2f; --panel2:#0a1f22;
     --tile:#0f2e33; --tile-hover:#154048; --tile-selected:#1a5b66;
@@ -21,12 +20,13 @@
   header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:8px 0 12px}
   .title{display:flex;gap:10px;align-items:center;font-weight:900;font-size:clamp(18px,2.6vw,26px)}
   .panel{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid #194a51;border-radius:16px;padding:12px 14px;box-shadow:var(--shadow);display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  .badge{padding:8px 12px;border-radius:999px;background:#0c2326;border:1px solid #1a4f56;font-weight:800;transition:.2s background,.2s border-color,.2s transform}
-  .btn{appearance:none;border:0;background:linear-gradient(180deg,#ffd0d0,#ff9b9b);color:#4b1111;padding:10px 14px;border-radius:12px;font-weight:900;cursor:pointer;box-shadow:inset 0 -2px 0 rgba(0,0,0,.15),0 8px 16px rgba(0,0,0,.25);transition:.15s transform,.15s filter}
+  .badge{padding:8px 12px;border-radius:999px;background:#0c2326;border:1px solid #1a4f56;font-weight:800}
+  .btn{appearance:none;border:0;background:linear-gradient(180deg,#ffd0d0,#ff9b9b);color:#4b1111;padding:10px 14px;border-radius:12px;font-weight:900;cursor:pointer;box-shadow:inset 0 -2px 0 rgba(0,0,0,.15),0 8px 16px rgba(0,0,0,.25);transition:.15s transform}
   .btn:active{transform:translateY(1px)}
   .btn.ghost{background:#14343a;color:#d7fbff;border:1px solid #1b5e67}
-  .meter{position:relative;height:14px;background:#0b2024;border:1px solid #1a4f56;border-radius:999px;overflow:hidden;min-width:200px}
-  .fill{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,var(--green),#86efac);transition:width .35s ease, background .2s ease, filter .2s ease}
+  .btn.tiny{padding:8px 10px;font-size:13px}
+  .meter{position:relative;height:14px;background:#0b2024;border:1px solid #1a4f56;border-radius:999px;overflow:hidden;min-width:220px}
+  .fill{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,var(--green),#86efac);transition:width .35s ease}
   .stage-wrap{margin:14px 0}
   .stage{
     position:relative;width:100%;height: clamp(420px, 60vw, 640px);
@@ -45,26 +45,20 @@
   @keyframes pop{0%{transform:scale(1)}30%{transform:scale(1.15)}100%{transform:scale(.1);opacity:0}}
   .overlay{position:fixed;inset:0;background:rgba(3,10,12,.75);display:none;align-items:center;justify-content:center;padding:20px;z-index:10}
   .dialog{max-width:640px;width:100%;background:linear-gradient(180deg,#0f2e33,#0a1f22);border:1px solid #1a4f56;border-radius:18px;box-shadow:var(--shadow);padding:22px}
-  .levels{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:10px}
-  .lv{padding:12px 14px;border-radius:12px;background:#0c2326;border:1px solid #1a4f56;cursor:pointer;text-align:center;font-weight:800}
+  .levels{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-top:10px}
+  .lv{padding:14px;border-radius:12px;background:#0c2326;border:1px solid #1a4f56;cursor:pointer;text-align:center;font-weight:900}
   .cert-wrap{margin-top:12px}
   .cert-wrap img{width:100%;border-radius:12px;border:1px solid #1a4f56;display:block}
   .dl-bar{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap;align-items:center}
   .name-input{display:flex;gap:8px;flex:1}
   .name-input input{flex:1;padding:8px 10px;border-radius:8px;border:1px solid #1a4f56;background:#0c2326;color:#fff;font-weight:600;}
   footer{opacity:.85;text-align:center;margin:10px 0}
-
-  /* 倒计时颜色状态 */
-  #timeLabel{background:#0e2a2f;border-color:#1a4f56}
+  /* 倒计时颜色状态 + 紧急效果 */
+  #timeLabel{background:#0e2a2f;border:1px solid #1a4f56;border-radius:999px;padding:8px 12px;font-weight:800}
   .time-ok #timeLabel{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.35)}
   .time-warn #timeLabel{background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.45)}
-  .time-danger #timeLabel{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.5);transform:scale(1.02)}
-
-  /* 紧急脉冲闪烁 */
-  .pulse{animation:pulse 1s infinite}
-  @keyframes pulse{0%{filter:drop-shadow(0 0 0 rgba(255,255,255,0))}50%{filter:drop-shadow(0 0 10px rgba(255,255,255,.35))}100%{filter:drop-shadow(0 0 0 rgba(255,255,255,0))}}
-
-  /* ≤10s 轻微抖动（舞台） */
+  .time-danger #timeLabel{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.5)}
+  .pulse{animation:pulse 1s infinite} @keyframes pulse{0%{filter:drop-shadow(0 0 0 rgba(255,255,255,0))}50%{filter:drop-shadow(0 0 10px rgba(255,255,255,.35))}100%{filter:drop-shadow(0 0 0 rgba(255,255,255,0))}}
   .shake{animation:shake .4s linear infinite}
   @keyframes shake{
     0%{ transform: translate(0px, 0px) rotate(0deg); }
@@ -74,21 +68,23 @@
     80%{ transform: translate(-1px, -1px) rotate(0.3deg); }
     100%{ transform: translate(0px, 0px) rotate(0deg); }
   }
-
   @media (max-width:600px){.tile{width:58px;height:58px;font-size:32px}}
 </style>
 </head>
 <body>
+<!-- 🎵 圣诞BGM（可换成你自己的链接） -->
+<audio id="bgm" loop preload="auto" crossorigin="anonymous"
+  src="https://cdn.pixabay.com/download/audio/2023/11/24/audio_46f6c8a823.mp3?filename=we-wish-you-a-merry-christmas-instrumental-15236.mp3"></audio>
+
 <div class="container">
   <header>
-    <div class="title"><span>🎄</span><span>圣诞节配对挑战</span></div>
+    <div class="title"><span>🎄</span><span id="modeLabel">圣诞节配对挑战</span></div>
     <div class="panel" id="panel">
       <span class="badge" id="score">得分 0</span>
       <span class="badge">关卡 <span id="lvLabel">1</span></span>
-
       <div class="meter"><div class="fill" id="timeFill"></div></div>
       <span class="badge" id="timeLabel">倒计时 0s</span>
-
+      <button class="btn tiny ghost" id="btnBgm">🔈 音乐开</button>
       <button class="btn" id="btnRestart">重开</button>
     </div>
   </header>
@@ -97,15 +93,20 @@
   <footer>🧑‍🎄 规则：点击两张相同图案即可配对消除。</footer>
 </div>
 
-<!-- 欢迎页：三档起点不变 -->
-<div class="overlay" id="startOverlay">
+<!-- 首页：三模式独立入口 -->
+<div class="overlay" id="startOverlay" style="display:flex;">
   <div class="dialog">
-    <h2>选择难度开始 🎅</h2>
-    <div class="levels" id="levels"></div>
+    <h2>选择模式开始 🎅</h2>
+    <div class="levels">
+      <button class="lv" id="btnEasy">🎄 简单模式</button>
+      <button class="lv" id="btnNormal">🎁 一般模式</button>
+      <button class="lv" id="btnHard">❄️ 困难模式</button>
+    </div>
+    <p style="opacity:.8;margin-top:10px">每个模式都是独立的闯关线路（第1关 → 第2关 → 第3关 …），难度随关卡递增。</p>
   </div>
 </div>
 
-<!-- 结算页 -->
+<!-- 结算 -->
 <div class="overlay" id="endOverlay" style="display:none;">
   <div class="dialog">
     <h2 id="endTitle">通关！🎁</h2>
@@ -119,6 +120,7 @@
       <a class="btn" id="btnDownload" download="圣诞节证书.png">下载证书.png</a>
       <button class="lv" id="btnAgain">再玩一次</button>
       <button class="lv" id="btnNext">下一关</button>
+      <button class="lv" id="btnHome">返回首页</button>
     </div>
 
     <div class="cert-wrap"><img id="certImg" alt="证书预览" /></div>
@@ -126,30 +128,21 @@
 </div>
 
 <script>
-/** ---------- 圣诞主题 + 原玩法保持 ---------- */
-/* ========= 圣诞表情池（优化版） ========= */
+/* ========= 圣诞表情池（优化版：去掉容易混淆的人脸，仅留 🎅） ========= */
 const EMOJIS=[
   "🎅","🎄","🎁","🎀","🧦","🕯️","🍪","🦌","🎉","🍬",
   "⛄","❄️","🌟","🍷","🥛","🧸","🔔","🪅","🪄","🍗"
 ];
 
-/* L1~L3 基础模板（简单/一般/困难），其余关卡按“无限递增规则”生成 */
-const BASE_LEVELS=[
-  {pairs:12,kinds:4,time:45},   // L1
-  {pairs:16,kinds:6,time:60},   // L2
-  {pairs:20,kinds:8,time:75}    // L3
-];
+/* ========= 模式配置（独立线路） ========= */
+const MODES={
+  easy:{ key:'easy',  title:'简单模式',  bonusPerSec:5, base:{pairs:12,kinds:4,timeRaw:60}, perLevel:{pairs:+2,kindsEvery:2,kindsInc:+1,timeDecay:3,minTime:30} },
+  normal:{ key:'normal',title:'一般模式',  bonusPerSec:6, base:{pairs:16,kinds:6,timeRaw:55}, perLevel:{pairs:+2,kindsEvery:2,kindsInc:+1,timeDecay:2,minTime:28} },
+  hard:{ key:'hard',  title:'困难模式',  bonusPerSec:8, base:{pairs:20,kinds:8,timeRaw:50}, perLevel:{pairs:+2,kindsEvery:1,kindsInc:+1,timeDecay:1,minTime:25} }
+};
+const TIME_SCALE = 2/3; // 倒计时整体缩短为原来的 2/3
 
-/* 递增规则（每完成3关进入下一轮） */
-const TIME_SCALE = 2/3;       // 实际倒计时比例
-const PAIRS_PER_RING = 4;     // 每一轮 +4 对
-const KINDS_PER_RING = 2;     // 每一轮 +2 种
-const TIME_DECAY_PER_RING = 5;// 每一轮原始时间 -5s（不低于30s）
-
-/* 时间奖励：按循环内序号（1/2/3）→ ×5 / ×6 / ×8 */
-const BONUS_PER_SEC_BY_POS = [5,6,8];
-
-/* 前两关加时：在循环内第1/2关（L1/L2/L4/L5/L7…）每消一对+1s */
+/* ========= 声效 ========= */
 let AC;
 function ensureAC(){ if(!AC){ const C=window.AudioContext||window.webkitAudioContext; AC=new C(); } if(AC.state==='suspended') AC.resume(); }
 function blip({fStart=1900,fEnd=900,dur=70,type='square',gain=0.045,when=0}) {
@@ -162,49 +155,63 @@ function sfxClick(){ blip({fStart:2000,fEnd:1200,dur:60,type:'triangle',gain:.05
 function sfxWin(){ [800,1000,1200,1600].forEach((f,i)=>blip({fStart:f,fEnd:f/1.5,dur:120,type:'triangle',gain:.05,when:i*100})); }
 function sfxBonus(){ blip({fStart:1400,fEnd:2200,dur:90,type:'triangle',gain:.045}); }
 
-/** ---------- 状态 ---------- */
-let state={ lv:1, score:0, lock:false, picked:null, tiles:[], startTime:0, timeLeft:0, timeBonus:0, finalScore:0 };
+/* ========= 背景音乐控制 ========= */
+const bgm = document.getElementById('bgm');
+const btnBgm = document.getElementById('btnBgm');
+let bgmEnabled = true;
 
-/** ---------- DOM ---------- */
-const stage=document.getElementById('stage');
-const scoreEl=document.getElementById('score');
-const lvLabel=document.getElementById('lvLabel');
-const timeFill=document.getElementById('timeFill');
-const timeLabel=document.getElementById('timeLabel');
-const panel=document.getElementById('panel');
+function tryPlayBgm(){
+  if (!bgmEnabled) return;
+  bgm.volume = 0.3;
+  bgm.play().catch(()=>{ /* 忽略自动播放受阻 */ });
+}
+document.body.addEventListener('pointerdown', () => { tryPlayBgm(); }, {once:true});
+btnBgm.onclick = () => {
+  if (bgmEnabled) {
+    bgm.pause();
+    bgmEnabled = false;
+    btnBgm.textContent = "🔇 音乐关";
+  } else {
+    bgmEnabled = true;
+    btnBgm.textContent = "🔈 音乐开";
+    tryPlayBgm();
+  }
+};
 
-const startOverlay=document.getElementById('startOverlay');
-const levelsEl=document.getElementById('levels');
+/* ========= 状态 ========= */
+const stage=document.getElementById('stage'), scoreEl=document.getElementById('score'), lvLabel=document.getElementById('lvLabel'), modeLabel=document.getElementById('modeLabel');
+const timeFill=document.getElementById('timeFill'), timeLabel=document.getElementById('timeLabel'), panel=document.getElementById('panel');
+const startOverlay=document.getElementById('startOverlay'), endOverlay=document.getElementById('endOverlay');
+const endTitle=document.getElementById('endTitle'), endStats=document.getElementById('endStats');
+const nameInput=document.getElementById('nameInput'), btnUpdateCert=document.getElementById('btnUpdateCert'), btnDownload=document.getElementById('btnDownload'), certImg=document.getElementById('certImg');
 
-const endOverlay=document.getElementById('endOverlay');
-const endTitle=document.getElementById('endTitle');
-const endStats=document.getElementById('endStats');
-const nameInput=document.getElementById('nameInput');
-const btnUpdateCert=document.getElementById('btnUpdateCert');
-const btnDownload=document.getElementById('btnDownload');
-const certImg=document.getElementById('certImg');
+const btnRestart=document.getElementById('btnRestart'), btnAgain=document.getElementById('btnAgain'), btnNext=document.getElementById('btnNext'), btnHome=document.getElementById('btnHome');
+document.getElementById('btnEasy').onclick=()=>startMode(MODES.easy);
+document.getElementById('btnNormal').onclick=()=>startMode(MODES.normal);
+document.getElementById('btnHard').onclick=()=>startMode(MODES.hard);
+document.body.addEventListener('pointerdown', ensureAC, {once:true});
 
-const btnRestart=document.getElementById('btnRestart');
-const btnAgain=document.getElementById('btnAgain');
-const btnNext=document.getElementById('btnNext');
+let state={ mode:MODES.easy, lv:1, score:0, lock:false, picked:null, tiles:[], startTime:0, timeLeft:0, finalScore:0 };
+btnRestart.onclick = ()=>startLevel(state.lv);
+btnAgain.onclick   = ()=>startLevel(state.lv);
+btnNext.onclick    = ()=>startLevel(state.lv+1);
+btnHome.onclick    = ()=>{ endOverlay.style.display='none'; startOverlay.style.display='flex'; };
 
-/** ---------- 工具 ---------- */
-function randInt(n){return Math.floor(Math.random()*n);}
-function randFloat(a,b){return a+Math.random()*(b-a);}
-
-/** ---------- 关卡生成（无限递增） ---------- */
-function getLevelConfig(levelNumber){
-  const pos = (levelNumber-1) % 3;         // 0/1/2 → L1/L2/L3
-  const ring = Math.floor((levelNumber-1)/3);
-  const base = BASE_LEVELS[pos];
-  const pairs = base.pairs + ring * PAIRS_PER_RING;
-  const kinds = base.kinds + ring * KINDS_PER_RING;
-  const timeRaw = Math.max(30, base.time - ring * TIME_DECAY_PER_RING);
-  const time = Math.max(1, Math.round(timeRaw * TIME_SCALE));
-  return {pairs, kinds, time, pos, ring};
+function startMode(mode){
+  state.mode=mode; state.lv=1;
+  tryPlayBgm(); // 进入模式时自动尝试播放
+  startLevel(1);
 }
 
-/** ---------- 倒计时 ---------- */
+function getLevelConfig(mode, level){
+  const base=mode.base, inc=mode.perLevel;
+  const pairs = base.pairs + (level-1)*inc.pairs;
+  const kinds = base.kinds + Math.floor((level-1)/inc.kindsEvery)*inc.kindsInc;
+  const timeRaw = Math.max(inc.minTime, base.timeRaw - (level-1)*inc.timeDecay);
+  const time = Math.max(1, Math.round(timeRaw * TIME_SCALE));
+  return {pairs,kinds,time,level};
+}
+
 let timerId=null, timerTotal=0, emergencyOn=false;
 function clearTimer(){ if(timerId){ clearInterval(timerId); timerId=null; } emergencyOn=false; stage.classList.remove('shake'); timeFill.classList.remove('pulse'); timeLabel.classList.remove('pulse'); panel.classList.remove('time-ok','time-warn','time-danger'); }
 function startTimer(seconds){
@@ -215,48 +222,38 @@ function updateTimerUI(){
   timeLabel.textContent = `倒计时 ${Math.max(0,state.timeLeft)}s`;
   const pct = timerTotal>0 ? (state.timeLeft/timerTotal)*100 : 0;
   timeFill.style.width = Math.max(0,Math.min(100,pct))+'%';
-
   panel.classList.remove('time-ok','time-warn','time-danger');
   if(pct>50){ panel.classList.add('time-ok'); timeFill.style.background='linear-gradient(90deg,var(--green),#86efac)'; timeFill.classList.remove('pulse'); timeLabel.classList.remove('pulse'); stage.classList.remove('shake'); emergencyOn=false; }
   else if(pct>20){ panel.classList.add('time-warn'); timeFill.style.background='linear-gradient(90deg,var(--amber),#fde68a)'; timeFill.classList.remove('pulse'); timeLabel.classList.remove('pulse'); stage.classList.remove('shake'); emergencyOn=false; }
   else{ panel.classList.add('time-danger'); timeFill.style.background='linear-gradient(90deg,var(--red),#fca5a5)'; if(state.timeLeft<=10){ timeFill.classList.add('pulse'); timeLabel.classList.add('pulse'); stage.classList.add('shake'); if(!emergencyOn){emergencyOn=true; if(navigator.vibrate) navigator.vibrate(120);} } else { timeFill.classList.remove('pulse'); timeLabel.classList.remove('pulse'); stage.classList.remove('shake'); emergencyOn=false; } }
 }
 
-/** ---------- 首页入口（保持三档） ---------- */
-['L1 简单','L2 一般','L3 困难'].forEach((txt,i)=>{
-  const b=document.createElement('button');
-  b.className='lv'; b.textContent=txt;
-  b.onclick=()=>{ ensureAC(); startGame(i+1); };
-  levelsEl.appendChild(b);
-});
-startOverlay.style.display='flex';
-document.body.addEventListener('pointerdown', ensureAC, {once:true});
-
-/** ---------- 开始/重开/下一关 ---------- */
-function startGame(levelNumber){
-  const cfg=getLevelConfig(levelNumber);
-  state.lv=levelNumber; state.score=0; state.lock=false; state.picked=null; state.startTime=Date.now();
-  scoreEl.textContent='得分 0'; lvLabel.textContent=levelNumber;
+/* ========= 关卡开始 ========= */
+function startLevel(level){
+  ensureAC();
+  const cfg=getLevelConfig(state.mode, level);
+  state.lv=level; state.score=0; state.lock=false; state.picked=null; state.startTime=Date.now();
+  scoreEl.textContent='得分 0'; lvLabel.textContent=level;
+  modeLabel.textContent=`圣诞节配对挑战 · ${state.mode.title}`;
   buildScene(cfg);
   startTimer(cfg.time);
   startOverlay.style.display='none'; endOverlay.style.display='none';
 }
-btnRestart.onclick=()=>startGame(state.lv);
-btnAgain.onclick=()=>startGame(state.lv);
-btnNext.onclick=()=>startGame(state.lv+1); // 无限推进
 
-/** ---------- 生成散落卡片 ---------- */
+/* ========= 生成散落卡片 ========= */
+function randInt(n){return Math.floor(Math.random()*n);}
+function randFloat(a,b){return a+Math.random()*(b-a);}
 function buildScene(cfg){
   stage.innerHTML=''; state.tiles=[];
   const pool=[];
   for(let i=0;i<cfg.pairs;i++){ const k=randInt(cfg.kinds); pool.push(k,k); }
   for(let i=pool.length-1;i>0;i--){ const j=randInt(i+1); [pool[i],pool[j]]=[pool[j],pool[i]]; }
 
-  const rect=stage.getBoundingClientRect(), W=rect.width, H=rect.height, pad=10;
+  const rect=stage.getBoundingClientRect(), W=rect.width, H=rect.height, pad=10, TW=68, TH=68;
   for(const v of pool){
     const el=document.createElement('div');
     el.className='tile'; el.textContent=EMOJIS[v % EMOJIS.length]; el.dataset.v=v;
-    const x=randFloat(pad, W-68-pad), y=randFloat(pad, H-68-pad);
+    const x=randFloat(pad, Math.max(pad, W-TW-pad)), y=randFloat(pad, Math.max(pad, H-TH-pad));
     el.style.left=x+'px'; el.style.top=y+'px';
     el.onclick=()=>onPick(el,v,cfg);
     stage.appendChild(el);
@@ -264,7 +261,7 @@ function buildScene(cfg){
   }
 }
 
-/** ---------- 点击配对（相同即消；循环内第1/2关加1秒） ---------- */
+/* ========= 点击配对 ========= */
 function onPick(el,v,cfg){
   sfxClick();
   if(state.lock) return;
@@ -288,7 +285,8 @@ function onPick(el,v,cfg){
 
     state.score+=10; scoreEl.textContent=`得分 ${state.score}`;
 
-    if(cfg.pos<2){ // L1/L2/L4/L5…
+    // 前两关每消一对 +1s
+    if(state.lv<=2){
       const before = state.timeLeft;
       state.timeLeft = Math.min(timerTotal, state.timeLeft + 1);
       if(state.timeLeft>before){ sfxBonus(); updateTimerUI(); }
@@ -298,28 +296,20 @@ function onPick(el,v,cfg){
   },250);
 }
 
-/** ---------- 结算 + 证书 ---------- */
+/* ========= 结算 & 证书 ========= */
 function showEnd(win,cfg){
   clearTimer();
   const elapsed=Math.round((Date.now()-state.startTime)/1000);
-
-  if(win){
-    const factor = BONUS_PER_SEC_BY_POS[cfg.pos] || BONUS_PER_SEC_BY_POS.at(-1);
-    state.timeBonus = Math.max(0, Math.round(state.timeLeft * factor));
-    state.finalScore = state.score + state.timeBonus;
-    sfxWin();
-  }else{
-    state.timeBonus = 0;
-    state.finalScore = state.score;
-  }
+  let timeBonus=0;
+  if(win){ timeBonus = Math.max(0, Math.round(state.timeLeft * state.mode.bonusPerSec)); sfxWin(); }
+  state.finalScore = state.score + timeBonus;
 
   endTitle.textContent=win?'通关！🎁':'时间到！';
-  const bonusText = state.timeBonus>0 ? `（含时间奖励 +${state.timeBonus}）` : '';
-  endStats.textContent=`得分：${state.finalScore}${bonusText}｜用时：${elapsed}s`;
-  btnNext.textContent='下一关';
+  const bonusText = timeBonus>0 ? `（含时间奖励 +${timeBonus}）` : '';
+  endStats.textContent=`模式：${state.mode.title} ｜ 关卡：${state.lv} ｜ 得分：${state.finalScore}${bonusText} ｜ 用时：${elapsed}s`;
 
   const name = nameInput.value?.trim() || '神秘玩家';
-  const url=makeCert({win,score:state.finalScore,time:elapsed,lv:state.lv,name});
+  const url=makeCert({win,score:state.finalScore,time:elapsed,lv:state.lv,name,mode:state.mode.title});
   certImg.src=url; btnDownload.href=url;
 
   endOverlay.style.display='flex';
@@ -329,45 +319,41 @@ nameInput.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefaul
 function regenerateCert(){
   if(endOverlay.style.display==='none') return;
   const win=/通关/.test(endTitle.textContent);
-  const elapsed=parseInt((endStats.textContent.match(/用时：(\d+)s/)||[])[1]||'0',10);
+  const info=endStats.textContent;
+  const lv=parseInt((info.match(/关卡：(\d+)/)||[])[1]||'1',10);
+  const time=parseInt((info.match(/用时：(\d+)s/)||[])[1]||'0',10);
   const name=nameInput.value?.trim()||'神秘玩家';
-  const url=makeCert({win,score:state.finalScore,time:elapsed,lv:state.lv,name});
+  const mode=(info.match(/模式：(.+?) ｜/)||[])[1]||state.mode.title;
+  const url=makeCert({win,score:state.finalScore,time,lv,name,mode});
   certImg.src=url; btnDownload.href=url;
 }
 
-/** 圣诞证书绘制 */
-function makeCert({win,score,time,lv,name}){
+/* 证书绘制 */
+function makeCert({win,score,time,lv,name,mode}){
   const w=900,h=600; const c=document.createElement('canvas'); c.width=w; c.height=h; const ctx=c.getContext('2d');
-
   const g=ctx.createLinearGradient(0,0,0,h); g.addColorStop(0,'#08323a'); g.addColorStop(1,'#061c21');
   ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
-  // 边框：圣诞红绿渐变
   const s=ctx.createLinearGradient(20,20,w-20,h-20); s.addColorStop(0,'#22c55e'); s.addColorStop(1,'#ef4444');
   ctx.strokeStyle=s; ctx.lineWidth=6; ctx.strokeRect(20,20,w-40,h-40);
 
   ctx.fillStyle='#fff'; ctx.font='bold 46px system-ui'; ctx.textAlign='center';
-  ctx.fillText('圣诞节配对挑战', w/2, 100);
+  ctx.fillText('圣诞节配对挑战', w/2, 90);
 
-  ctx.font='600 30px system-ui'; ctx.fillStyle='#9de6ff';
-  ctx.fillText(`颁发给：${name}`, w/2, 160);
-
+  ctx.font='600 30px system-ui'; ctx.fillStyle='#9de6ff'; ctx.fillText(`颁发给：${name}`, w/2, 150);
   ctx.font='28px system-ui'; ctx.fillStyle=win?'#86efac':'#ff9b9b';
-  ctx.fillText(win?'🎄 通关认证':'🎄 挑战结束', w/2, 210);
+  ctx.fillText(win?'🎄 通关认证':'🎄 挑战结束', w/2, 195);
 
   ctx.textAlign='left'; ctx.fillStyle='#cfefff'; ctx.font='24px system-ui';
-  ctx.fillText(`关卡：Lv.${lv}`, 100, 280);
-  ctx.fillText(`得分：${score}`, 100, 320);
-  ctx.fillText(`用时：${time}s`, 100, 360);
+  ctx.fillText(`模式：${mode}`, 100, 260);
+  ctx.fillText(`关卡：Lv.${lv}`, 100, 300);
+  ctx.fillText(`得分：${score}`, 100, 340);
+  ctx.fillText(`用时：${time}s`, 100, 380);
 
-  ctx.fillStyle='#a4f3ff';
-  ctx.fillText(`时间：${new Date().toLocaleString('zh-CN',{hour12:false})}`, 100, 420);
-
+  ctx.fillStyle='#a4f3ff'; ctx.fillText(`时间：${new Date().toLocaleString('zh-CN',{hour12:false})}`, 100, 420);
   ctx.textAlign='center'; ctx.fillStyle='#9de6ff'; ctx.font='22px system-ui';
   ctx.fillText('恭喜获得本次圣诞配对挑战证书 🎅（可分享）', w/2, 520);
-
   return c.toDataURL('image/png');
 }
 </script>
 </body>
 </html>
-
