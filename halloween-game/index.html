@@ -72,10 +72,6 @@
 </style>
 </head>
 <body>
-<!-- 🎵 BGM：进入首页即静音自动播；首次触摸自动取消静音继续播 -->
-<audio id="bgm" autoplay muted loop playsinline preload="auto" crossorigin="anonymous"
-  src="https://files.freemusicarchive.org/storage-freemusicarchive-org/music/no_curator/Scott_Holmes_Music/Festive_Fun/Scott_Holmes_Music_-_Christmas_Snow.mp3"></audio>
-
 <div class="container">
   <header>
     <div class="title"><span>🎄</span><span id="modeLabel">圣诞节配对挑战</span></div>
@@ -128,7 +124,120 @@
 </div>
 
 <script>
-/* ========= 圣诞表情池（优化版：去掉容易混淆的人脸，仅留 🎅） ========= */
+/* ========= 单一 AudioContext（音效+BGM共用） ========= */
+let AC;
+function ensureAC(){
+  if(!AC){
+    const C = window.AudioContext || window.webkitAudioContext;
+    AC = new C();
+  }
+  if(AC.state==='suspended') AC.resume();
+}
+
+/* ========= WebAudio BGM 模块 ========= */
+const BGM = {
+  url: 'https://files.freemusicarchive.org/storage-freemusicarchive-org/music/no_curator/Scott_Holmes_Music/Festive_Fun/Scott_Holmes_Music_-_Christmas_Snow.mp3',
+  buffer: null,
+  source: null,
+  gain: null,
+  enabled: true,         // 用户是否开启
+  targetVol: 0.32,
+  loaded: false,
+  loading: false,
+
+  async load(){
+    if(this.loaded || this.loading) return;
+    this.loading = true;
+    ensureAC();
+    try{
+      const resp = await fetch(this.url, {mode:'cors', cache:'force-cache'});
+      const arr  = await resp.arrayBuffer();
+      this.buffer = await AC.decodeAudioData(arr);
+      this.gain = AC.createGain();
+      this.gain.gain.setValueAtTime(0, AC.currentTime);
+      this.gain.connect(AC.destination);
+      this.loaded = true;
+    }catch(e){
+      console.warn('BGM load failed', e);
+    }finally{
+      this.loading = false;
+    }
+  },
+
+  start(){
+    if(!this.enabled || !this.loaded) return;
+    ensureAC();
+    if(this.source){ try{this.source.stop();}catch(_){} this.source.disconnect(); this.source = null; }
+    this.source = AC.createBufferSource();
+    this.source.buffer = this.buffer;
+    this.source.loop = true;
+    this.source.connect(this.gain);
+    this.source.start();
+    this.fadeTo(this.targetVol, 0.8);
+  },
+
+  stop(fade=true){
+    if(!this.gain) return;
+    const t = AC.currentTime;
+    this.gain.gain.cancelScheduledValues(t);
+    this.gain.gain.setValueAtTime(this.gain.gain.value, t);
+    if(fade){
+      this.gain.gain.linearRampToValueAtTime(0, t+0.5);
+      setTimeout(()=>{ if(this.source){ try{this.source.stop();}catch(_){} this.source.disconnect(); this.source=null; } }, 520);
+    }else{
+      if(this.source){ try{this.source.stop();}catch(_){} this.source.disconnect(); this.source=null; }
+      this.gain.gain.setValueAtTime(0, t);
+    }
+  },
+
+  fadeTo(vol, seconds=0.6){
+    if(!this.gain) return;
+    const t = AC.currentTime;
+    this.gain.gain.cancelScheduledValues(t);
+    this.gain.gain.setValueAtTime(this.gain.gain.value, t);
+    this.gain.gain.linearRampToValueAtTime(vol, t+seconds);
+  },
+
+  async ensurePlaying(){
+    if(!this.enabled) return;
+    ensureAC();
+    await AC.resume().catch(()=>{});
+    if(!this.loaded){ await this.load(); }
+    if(!this.source){ this.start(); }
+    else { this.fadeTo(this.targetVol, 0.4); }
+  },
+
+  toggle(){
+    this.enabled = !this.enabled;
+    if(this.enabled) this.ensurePlaying(); else this.stop(true);
+  }
+};
+
+// 预先加载（静默解码，不自动播放）
+document.addEventListener('DOMContentLoaded', ()=>{ BGM.load(); });
+
+/* ========= 背景音乐按钮与交互解锁 ========= */
+const btnBgm = document.getElementById('btnBgm');
+function setBgmBtn(){ btnBgm.textContent = BGM.enabled ? '🔈 音乐开' : '🔇 音乐关'; }
+setBgmBtn();
+
+// 首次任意交互：尝试播放
+['pointerdown','touchstart','click'].forEach(ev=>{
+  document.addEventListener(ev, ()=>BGM.ensurePlaying(), {once:true, passive:true});
+});
+// 常用按钮也再试一次（提高成功率）
+['btnEasy','btnNormal','btnHard','btnRestart','btnAgain','btnNext'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el) el.addEventListener('click', ()=>BGM.ensurePlaying(), {passive:true});
+});
+// 页面回到前台：若开启则恢复
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState==='visible' && BGM.enabled) BGM.ensurePlaying();
+});
+// 手动开关
+btnBgm.onclick = ()=>{ BGM.toggle(); setBgmBtn(); };
+
+/* ========= 圣诞表情池（去重人脸，仅留 🎅） ========= */
 const EMOJIS=[
   "🎅","🎄","🎁","🎀","🧦","🕯️","🍪","🦌","🎉","🍬",
   "⛄","❄️","🌟","🍷","🥛","🧸","🔔","🪅","🪄","🍗"
@@ -142,9 +251,7 @@ const MODES={
 };
 const TIME_SCALE = 2/3; // 倒计时整体缩短为原来的 2/3
 
-/* ========= 声效 ========= */
-let AC;
-function ensureAC(){ if(!AC){ const C=window.AudioContext||window.webkitAudioContext; AC=new C(); } if(AC.state==='suspended') AC.resume(); }
+/* ========= 清脆点击/通关/加时 音效（与 BGM 共用 AC） ========= */
 function blip({fStart=1900,fEnd=900,dur=70,type='square',gain=0.045,when=0}) {
   ensureAC(); const t0=AC.currentTime+when/1000; const o=AC.createOscillator(); const g=AC.createGain();
   o.type=type; o.frequency.setValueAtTime(fStart,t0); o.frequency.exponentialRampToValueAtTime(fEnd,t0+dur/1000);
@@ -155,55 +262,7 @@ function sfxClick(){ blip({fStart:2000,fEnd:1200,dur:60,type:'triangle',gain:.05
 function sfxWin(){ [800,1000,1200,1600].forEach((f,i)=>blip({fStart:f,fEnd:f/1.5,dur:120,type:'triangle',gain:.05,when:i*100})); }
 function sfxBonus(){ blip({fStart:1400,fEnd:2200,dur:90,type:'triangle',gain:.045}); }
 
-/* ========= 背景音乐控制（首页静音自动播 + 触摸后自动开声） ========= */
-const bgm = document.getElementById('bgm');
-const btnBgm = document.getElementById('btnBgm');
-let bgmEnabled = true;      // 用户是否开启音乐
-let bgmUnlocked = false;    // 是否已被用户手势解锁（iOS 需要）
-function setBtnLabel(){ btnBgm.textContent = bgmEnabled ? '🔈 音乐开' : '🔇 音乐关'; }
-setBtnLabel();
-
-// 进入页面即尝试静音播放（autoplay muted 已加）
-document.addEventListener('DOMContentLoaded', async ()=>{
-  try{ await bgm.play(); }catch(_){}
-});
-
-// 用户任意触摸/点击后：取消静音并确保播放
-async function unmuteAndPlay(){
-  if(!bgmEnabled) return;
-  try{
-    if(bgm.muted) bgm.muted=false;
-    bgm.volume=0.32;
-    if (bgm.readyState < 2) bgm.load();
-    await bgm.play();
-    bgmUnlocked=true;
-  }catch(e){
-    try{
-      bgm.load(); bgm.currentTime=0; bgm.muted=false; bgm.volume=0.32;
-      await bgm.play(); bgmUnlocked=true;
-    }catch(_){/* 留待下次交互重试 */}
-  }
-}
-['pointerdown','touchstart','click'].forEach(ev=>{
-  document.addEventListener(ev, ()=>unmuteAndPlay(), {once:true, passive:true});
-});
-// 某些按钮也触发播放尝试
-['btnEasy','btnNormal','btnHard','btnRestart','btnAgain','btnNext'].forEach(id=>{
-  const el=document.getElementById(id);
-  if(el) el.addEventListener('click', ()=>unmuteAndPlay(), {passive:true});
-});
-// 开关
-btnBgm.onclick = async ()=>{
-  if(bgmEnabled){ bgmEnabled=false; bgm.pause(); }
-  else{ bgmEnabled=true; await unmuteAndPlay(); }
-  setBtnLabel();
-};
-// 页面从后台回来：如果开着就继续
-document.addEventListener('visibilitychange', ()=>{
-  if(document.visibilityState==='visible' && bgmEnabled) unmuteAndPlay();
-});
-
-/* ========= 状态 ========= */
+/* ========= 游戏状态 & DOM ========= */
 const stage=document.getElementById('stage'), scoreEl=document.getElementById('score'), lvLabel=document.getElementById('lvLabel'), modeLabel=document.getElementById('modeLabel');
 const timeFill=document.getElementById('timeFill'), timeLabel=document.getElementById('timeLabel'), panel=document.getElementById('panel');
 const startOverlay=document.getElementById('startOverlay'), endOverlay=document.getElementById('endOverlay');
@@ -224,7 +283,7 @@ btnHome.onclick    = ()=>{ endOverlay.style.display='none'; startOverlay.style.d
 
 function startMode(mode){
   state.mode=mode; state.lv=1;
-  unmuteAndPlay();         // 进入模式时再尝试一次开声播放
+  BGM.ensurePlaying(); // 进入模式时再尝试播放BGM（淡入）
   startLevel(1);
 }
 
@@ -237,6 +296,7 @@ function getLevelConfig(mode, level){
   return {pairs,kinds,time,level};
 }
 
+/* ========= 倒计时 ========= */
 let timerId=null, timerTotal=0, emergencyOn=false;
 function clearTimer(){ if(timerId){ clearInterval(timerId); timerId=null; } emergencyOn=false; stage.classList.remove('shake'); timeFill.classList.remove('pulse'); timeLabel.classList.remove('pulse'); panel.classList.remove('time-ok','time-warn','time-danger'); }
 function startTimer(seconds){
@@ -250,7 +310,7 @@ function updateTimerUI(){
   panel.classList.remove('time-ok','time-warn','time-danger');
   if(pct>50){ panel.classList.add('time-ok'); timeFill.style.background='linear-gradient(90deg,var(--green),#86efac)'; timeFill.classList.remove('pulse'); timeLabel.classList.remove('pulse'); stage.classList.remove('shake'); emergencyOn=false; }
   else if(pct>20){ panel.classList.add('time-warn'); timeFill.style.background='linear-gradient(90deg,var(--amber),#fde68a)'; timeFill.classList.remove('pulse'); timeLabel.classList.remove('pulse'); stage.classList.remove('shake'); emergencyOn=false; }
-  else{ panel.classList.add('time-danger'); timeFill.style.background='linear-gradient(90deg,var(--red),#fca5a5)'; if(state.timeLeft<=10){ timeFill.classList.add('pulse'); timeLabel.classList.add('pulse'); stage.classList.add('shake'); if(!emergencyOn){emergencyOn=true; if(navigator.vibrate) navigator.vibrate(120);} } else { timeFill.classList.remove('pulse'); timeLabel.classList.remove('pulse'); stage.classList.remove('shake'); emergencyOn=false; } }
+  else{ panel.classList.add('time-danger'); timeFill.style.background='linear-gradient(90deg,var(--red),#fca5a5)'; if(state.timeLeft<=10){ timeFill.classList.add('pulse'); timeLabel.classList.add('pulse'); stage.classList.add('shake'); if(!emergencyOn){ emergencyOn=true; if(navigator.vibrate) navigator.vibrate(120);} } else { timeFill.classList.remove('pulse'); timeLabel.classList.remove('pulse'); stage.classList.remove('shake'); emergencyOn=false; } }
 }
 
 /* ========= 关卡开始 ========= */
