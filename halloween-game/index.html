@@ -53,7 +53,6 @@
   .name-input{display:flex;gap:8px;flex:1}
   .name-input input{flex:1;padding:8px 10px;border-radius:8px;border:1px solid #1a4f56;background:#0c2326;color:#fff;font-weight:600;}
   footer{opacity:.85;text-align:center;margin:10px 0}
-  /* 倒计时颜色状态 + 紧急效果 */
   #timeLabel{background:#0e2a2f;border:1px solid #1a4f56;border-radius:999px;padding:8px 12px;font-weight:800}
   .time-ok #timeLabel{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.35)}
   .time-warn #timeLabel{background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.45)}
@@ -83,8 +82,9 @@
       <span class="badge">关卡 <span id="lvLabel">1</span></span>
       <div class="meter"><div class="fill" id="timeFill"></div></div>
       <span class="badge" id="timeLabel">倒计时 0s</span>
+      <!-- 改成“选关” -->
+      <button class="btn" id="btnSelect">选关</button>
       <button class="btn tiny ghost" id="btnBgm">🔈 音乐开</button>
-      <button class="btn" id="btnRestart">重开</button>
     </div>
   </header>
 
@@ -127,7 +127,7 @@
 </div>
 
 <script>
-/* ========= 清脆音效（仅用于点击/通关/加时） ========= */
+/* ========= 清脆音效 ========= */
 let AC;
 function ensureAC(){
   if(!AC){
@@ -146,7 +146,7 @@ function sfxClick(){ blip({fStart:2000,fEnd:1200,dur:60,type:'triangle',gain:.05
 function sfxWin(){ [800,1000,1200,1600].forEach((f,i)=>blip({fStart:f,fEnd:f/1.5,dur:120,type:'triangle',gain:.05,when:i*100})); }
 function sfxBonus(){ blip({fStart:1400,fEnd:2200,dur:90,type:'triangle',gain:.045}); }
 
-/* ========= 最稳 BGM（本地 <audio> 播放 + 按钮控制 + 首次触摸出声） ========= */
+/* ========= 本地 <audio> BGM（按钮控制 + 首次触摸出声） ========= */
 const btnBgm = document.getElementById('btnBgm');
 const bgmTag = document.getElementById('bgmTag');
 const BGM = {
@@ -177,7 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
 ['pointerdown','touchstart','click'].forEach(ev=>{
   document.addEventListener(ev, ()=>BGM.ensurePlay(), {once:true, passive:true});
 });
-['btnEasy','btnNormal','btnHard','btnRestart','btnAgain','btnNext'].forEach(id=>{
+['btnEasy','btnNormal','btnHard','btnAgain','btnNext','btnSelect'].forEach(id=>{
   const el=document.getElementById(id);
   if(el) el.addEventListener('click', ()=>BGM.ensurePlay(), {passive:true});
 });
@@ -198,7 +198,7 @@ const MODES={
   normal:{ key:'normal',title:'一般模式',  bonusPerSec:6, base:{pairs:16,kinds:6,timeRaw:55}, perLevel:{pairs:+2,kindsEvery:2,kindsInc:+1,timeDecay:2,minTime:28} },
   hard:{ key:'hard',  title:'困难模式',  bonusPerSec:8, base:{pairs:20,kinds:8,timeRaw:50}, perLevel:{pairs:+2,kindsEvery:1,kindsInc:+1,timeDecay:1,minTime:25} }
 };
-const TIME_SCALE = 2/3; // 总时长缩短到原来的 2/3
+const TIME_SCALE = 2/3;
 
 /* ========= 状态 ========= */
 const stage=document.getElementById('stage'), scoreEl=document.getElementById('score'), lvLabel=document.getElementById('lvLabel'), modeLabel=document.getElementById('modeLabel');
@@ -207,14 +207,28 @@ const startOverlay=document.getElementById('startOverlay'), endOverlay=document.
 const endTitle=document.getElementById('endTitle'), endStats=document.getElementById('endStats');
 const nameInput=document.getElementById('nameInput'), btnUpdateCert=document.getElementById('btnUpdateCert'), btnDownload=document.getElementById('btnDownload'), certImg=document.getElementById('certImg');
 
-const btnRestart=document.getElementById('btnRestart'), btnAgain=document.getElementById('btnAgain'), btnNext=document.getElementById('btnNext'), btnHome=document.getElementById('btnHome');
+const btnAgain=document.getElementById('btnAgain'), btnNext=document.getElementById('btnNext'), btnHome=document.getElementById('btnHome');
 document.getElementById('btnEasy').onclick=()=>startMode(MODES.easy);
 document.getElementById('btnNormal').onclick=()=>startMode(MODES.normal);
 document.getElementById('btnHard').onclick=()=>startMode(MODES.hard);
 document.body.addEventListener('pointerdown', ensureAC, {once:true});
 
+/* === 新增：选关按钮 === */
+const btnSelect=document.getElementById('btnSelect');
+btnSelect.onclick = ()=>{
+  clearTimer();
+  endOverlay.style.display='none';
+  startOverlay.style.display='flex';
+  stage.innerHTML='';
+  timeFill.style.width='0';
+  scoreEl.textContent='得分 0';
+  lvLabel.textContent='-';
+  modeLabel.textContent='圣诞节配对挑战';
+  // 重置状态
+  state.lock=false; state.picked=null; state.tiles=[];
+};
+
 let state={ mode:MODES.easy, lv:1, score:0, lock:false, picked:null, tiles:[], startTime:0, timeLeft:0, finalScore:0 };
-btnRestart.onclick = ()=>startLevel(state.lv);
 btnAgain.onclick   = ()=>startLevel(state.lv);
 btnNext.onclick    = ()=>startLevel(state.lv+1);
 btnHome.onclick    = ()=>{ endOverlay.style.display='none'; startOverlay.style.display='flex'; };
@@ -337,7 +351,7 @@ function showEnd(win,cfg){
 
   endOverlay.style.display='flex';
 }
-btnUpdateCert.onclick = ()=>regenerateCert();
+document.getElementById('btnUpdateCert').onclick = ()=>regenerateCert();
 nameInput.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefault(); regenerateCert(); }});
 function regenerateCert(){
   if(endOverlay.style.display==='none') return;
