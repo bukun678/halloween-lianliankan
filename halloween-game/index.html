@@ -3,57 +3,59 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>万圣节配对挑战</title>
+<title>圣诞节配对挑战</title>
 <style>
   :root{
-    --bg:#0b0b1a;--text:#f7f7fb;--panel:#151532;--panel2:#0f0f23;
-    --tile:#1d1d36;--tile-hover:#2a2a55;--tile-selected:#3a3a7a;
-    --violet:#7e5cef;--green:#22c55e;--amber:#f59e0b;--red:#ef4444;
+    /* 圣诞主题配色：冷青 + 圣诞红/绿 */
+    --bg:#071116; --text:#f7f7fb;
+    --panel:#0d2b2f; --panel2:#0a1f22;
+    --tile:#0f2e33; --tile-hover:#154048; --tile-selected:#1a5b66;
+    --violet:#9de6ff; --green:#22c55e; --amber:#f59e0b; --red:#ef4444;
     --shadow:0 10px 30px rgba(0,0,0,.45);
   }
   html,body{height:100%;margin:0;background:
-    radial-gradient(1200px 700px at 70% -200px,#1a1440 0%,#0d0b1d 40%,#070711 100%),
+    radial-gradient(1200px 700px at 70% -200px,#08323a 0%,#052027 40%,#04141a 100%),
     var(--bg); color:var(--text); font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Apple Color Emoji,Noto Color Emoji;}
   *{box-sizing:border-box}
   .container{max-width:1100px;margin:0 auto;padding:16px}
   header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:8px 0 12px}
   .title{display:flex;gap:10px;align-items:center;font-weight:900;font-size:clamp(18px,2.6vw,26px)}
-  .panel{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid #27275a;border-radius:16px;padding:12px 14px;box-shadow:var(--shadow);display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  .badge{padding:8px 12px;border-radius:999px;background:#1b1b3a;border:1px solid #2a2a58;font-weight:800;transition:.2s background,.2s border-color,.2s transform}
-  .btn{appearance:none;border:0;background:linear-gradient(180deg,#ffb454,#ff9640);color:#3b1800;padding:10px 14px;border-radius:12px;font-weight:900;cursor:pointer;box-shadow:inset 0 -2px 0 rgba(0,0,0,.15),0 8px 16px rgba(0,0,0,.25);transition:.15s transform,.15s filter}
+  .panel{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid #194a51;border-radius:16px;padding:12px 14px;box-shadow:var(--shadow);display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .badge{padding:8px 12px;border-radius:999px;background:#0c2326;border:1px solid #1a4f56;font-weight:800;transition:.2s background,.2s border-color,.2s transform}
+  .btn{appearance:none;border:0;background:linear-gradient(180deg,#ffd0d0,#ff9b9b);color:#4b1111;padding:10px 14px;border-radius:12px;font-weight:900;cursor:pointer;box-shadow:inset 0 -2px 0 rgba(0,0,0,.15),0 8px 16px rgba(0,0,0,.25);transition:.15s transform,.15s filter}
   .btn:active{transform:translateY(1px)}
-  .btn.ghost{background:#1f1f3f;color:#c5c6ff;border:1px solid #2a2a63}
-  .meter{position:relative;height:14px;background:#1b1b36;border:1px solid #2a2a52;border-radius:999px;overflow:hidden;min-width:200px}
+  .btn.ghost{background:#14343a;color:#d7fbff;border:1px solid #1b5e67}
+  .meter{position:relative;height:14px;background:#0b2024;border:1px solid #1a4f56;border-radius:999px;overflow:hidden;min-width:200px}
   .fill{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,var(--green),#86efac);transition:width .35s ease, background .2s ease, filter .2s ease}
   .stage-wrap{margin:14px 0}
   .stage{
     position:relative;width:100%;height: clamp(420px, 60vw, 640px);
-    background:linear-gradient(180deg,rgba(20,20,50,.65),rgba(10,10,30,.65));
-    border:1px solid #26265a;border-radius:18px;box-shadow:var(--shadow);overflow:hidden;
+    background:linear-gradient(180deg,rgba(14,47,53,.65),rgba(6,22,25,.65));
+    border:1px solid #1a4f56;border-radius:18px;box-shadow:var(--shadow);overflow:hidden;
   }
   .tile{
     position:absolute;display:flex;align-items:center;justify-content:center;
     width:68px;height:68px;font-size:38px;line-height:1;
-    background:var(--tile);border:1px solid #2a2a58;border-radius:18px;cursor:pointer;
+    background:var(--tile);border:1px solid #1a4f56;border-radius:18px;cursor:pointer;
     transition:.12s transform,.12s filter,.12s box-shadow,.12s background;user-select:none;
   }
   .tile:hover{background:var(--tile-hover)}
-  .tile.selected{background:var(--tile-selected);box-shadow:0 0 0 3px var(--violet) inset,0 0 14px rgba(126,92,239,.4)}
+  .tile.selected{background:var(--tile-selected);box-shadow:0 0 0 3px var(--violet) inset,0 0 14px rgba(157,230,255,.35)}
   .tile.pop{animation:pop .35s both}
   @keyframes pop{0%{transform:scale(1)}30%{transform:scale(1.15)}100%{transform:scale(.1);opacity:0}}
-  .overlay{position:fixed;inset:0;background:rgba(6,6,14,.75);display:none;align-items:center;justify-content:center;padding:20px;z-index:10}
-  .dialog{max-width:640px;width:100%;background:linear-gradient(180deg,#161634,#0e0e22);border:1px solid #2a2a58;border-radius:18px;box-shadow:var(--shadow);padding:22px}
+  .overlay{position:fixed;inset:0;background:rgba(3,10,12,.75);display:none;align-items:center;justify-content:center;padding:20px;z-index:10}
+  .dialog{max-width:640px;width:100%;background:linear-gradient(180deg,#0f2e33,#0a1f22);border:1px solid #1a4f56;border-radius:18px;box-shadow:var(--shadow);padding:22px}
   .levels{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:10px}
-  .lv{padding:12px 14px;border-radius:12px;background:#1b1b3a;border:1px solid #2a2a58;cursor:pointer;text-align:center;font-weight:800}
+  .lv{padding:12px 14px;border-radius:12px;background:#0c2326;border:1px solid #1a4f56;cursor:pointer;text-align:center;font-weight:800}
   .cert-wrap{margin-top:12px}
-  .cert-wrap img{width:100%;border-radius:12px;border:1px solid #2a2a58;display:block}
+  .cert-wrap img{width:100%;border-radius:12px;border:1px solid #1a4f56;display:block}
   .dl-bar{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap;align-items:center}
   .name-input{display:flex;gap:8px;flex:1}
-  .name-input input{flex:1;padding:8px 10px;border-radius:8px;border:1px solid #2a2a58;background:#1b1b3a;color:#fff;font-weight:600;}
-  footer{opacity:.8;text-align:center;margin:10px 0}
+  .name-input input{flex:1;padding:8px 10px;border-radius:8px;border:1px solid #1a4f56;background:#0c2326;color:#fff;font-weight:600;}
+  footer{opacity:.85;text-align:center;margin:10px 0}
 
   /* 倒计时颜色状态 */
-  #timeLabel{background:#1e293b;border-color:#334155}
+  #timeLabel{background:#0e2a2f;border-color:#1a4f56}
   .time-ok #timeLabel{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.35)}
   .time-warn #timeLabel{background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.45)}
   .time-danger #timeLabel{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.5);transform:scale(1.02)}
@@ -79,7 +81,7 @@
 <body>
 <div class="container">
   <header>
-    <div class="title"><span>🌕</span><span>万圣节配对挑战</span></div>
+    <div class="title"><span>🎄</span><span>圣诞节配对挑战</span></div>
     <div class="panel" id="panel">
       <span class="badge" id="score">得分 0</span>
       <span class="badge">关卡 <span id="lvLabel">1</span></span>
@@ -92,13 +94,13 @@
   </header>
 
   <div class="stage-wrap"><div class="stage" id="stage"></div></div>
-  <footer>🎃 规则：点击两张相同图案即可配对消除。</footer>
+  <footer>🧑‍🎄 规则：点击两张相同图案即可配对消除。</footer>
 </div>
 
-<!-- 欢迎页：只展示 L1 / L2 / L3 的起点 -->
+<!-- 欢迎页：三档起点不变 -->
 <div class="overlay" id="startOverlay">
   <div class="dialog">
-    <h2>选择难度开始 👻</h2>
+    <h2>选择难度开始 🎅</h2>
     <div class="levels" id="levels"></div>
   </div>
 </div>
@@ -106,7 +108,7 @@
 <!-- 结算页 -->
 <div class="overlay" id="endOverlay" style="display:none;">
   <div class="dialog">
-    <h2 id="endTitle">通关！</h2>
+    <h2 id="endTitle">通关！🎁</h2>
     <p id="endStats" class="dim"></p>
 
     <div class="dl-bar">
@@ -114,7 +116,7 @@
         <input id="nameInput" type="text" placeholder="输入名字/昵称（可留空）" maxlength="20" />
         <button class="btn ghost" id="btnUpdateCert">更新证书</button>
       </div>
-      <a class="btn" id="btnDownload" download="万圣节证书.png">下载证书.png</a>
+      <a class="btn" id="btnDownload" download="圣诞节证书.png">下载证书.png</a>
       <button class="lv" id="btnAgain">再玩一次</button>
       <button class="lv" id="btnNext">下一关</button>
     </div>
@@ -124,23 +126,29 @@
 </div>
 
 <script>
-/** ---------- 基础配置（循环模板） ---------- */
-const EMOJIS=["🎃","👻","🦇","🕷️","🕸️","🍬","💀","🐈‍⬛","🧙‍♀️","🍭","🧛","🧟","🩸","🪦","🧪","🌕"];
-/* L1~L3 的基础模板：pairs=对数、kinds=种类、time=原始秒数 */
-const BASE_LEVELS=[
-  {pairs:12,kinds:4,time:45},  // L1（简单）
-  {pairs:16,kinds:6,time:60},  // L2（一般）
-  {pairs:20,kinds:8,time:75}   // L3（困难）
+/** ---------- 圣诞主题 + 原玩法保持 ---------- */
+/* 圣诞表情池 */
+const EMOJIS=[
+  "🎄","🎅","🧑‍🎄","🤶","❄️","⛄","🦌","🔔","🎁","🧦","🍪","🥛","🕯️","🍬","🧸","🌟","🍗","🍷"
 ];
-/* 循环难度系数：每完成 3 关，进入下一轮，按轮数递增难度 */
-const TIME_SCALE = 2/3;             // 实际倒计时 = time × 2/3
-const PAIRS_PER_RING = 4;           // 每一轮额外 +4 对
-const KINDS_PER_RING = 2;           // 每一轮额外 +2 种
-const TIME_DECAY_PER_RING = 5;      // 每一轮原始时间 -5s（上限不低于 30s）
-/* 结算时间奖励：按“循环内的位置”计算倍率（1→×5、2→×6、3→×8） */
+
+/* L1~L3 基础模板（简单/一般/困难），其余关卡按“无限递增规则”生成 */
+const BASE_LEVELS=[
+  {pairs:12,kinds:4,time:45},   // L1
+  {pairs:16,kinds:6,time:60},   // L2
+  {pairs:20,kinds:8,time:75}    // L3
+];
+
+/* 递增规则（每完成3关进入下一轮） */
+const TIME_SCALE = 2/3;       // 实际倒计时比例
+const PAIRS_PER_RING = 4;     // 每一轮 +4 对
+const KINDS_PER_RING = 2;     // 每一轮 +2 种
+const TIME_DECAY_PER_RING = 5;// 每一轮原始时间 -5s（不低于30s）
+
+/* 时间奖励：按循环内序号（1/2/3）→ ×5 / ×6 / ×8 */
 const BONUS_PER_SEC_BY_POS = [5,6,8];
 
-/** ---------- 音效 ---------- */
+/* 前两关加时：在循环内第1/2关（L1/L2/L4/L5/L7…）每消一对+1s */
 let AC;
 function ensureAC(){ if(!AC){ const C=window.AudioContext||window.webkitAudioContext; AC=new C(); } if(AC.state==='suspended') AC.resume(); }
 function blip({fStart=1900,fEnd=900,dur=70,type='square',gain=0.045,when=0}) {
@@ -154,13 +162,9 @@ function sfxWin(){ [800,1000,1200,1600].forEach((f,i)=>blip({fStart:f,fEnd:f/1.5
 function sfxBonus(){ blip({fStart:1400,fEnd:2200,dur:90,type:'triangle',gain:.045}); }
 
 /** ---------- 状态 ---------- */
-let state={
-  lv:1, score:0, lock:false,
-  picked:null, tiles:[], startTime:0,
-  timeLeft:0, timeBonus:0, finalScore:0
-};
+let state={ lv:1, score:0, lock:false, picked:null, tiles:[], startTime:0, timeLeft:0, timeBonus:0, finalScore:0 };
 
-// DOM
+/** ---------- DOM ---------- */
 const stage=document.getElementById('stage');
 const scoreEl=document.getElementById('score');
 const lvLabel=document.getElementById('lvLabel');
@@ -187,26 +191,19 @@ const btnNext=document.getElementById('btnNext');
 function randInt(n){return Math.floor(Math.random()*n);}
 function randFloat(a,b){return a+Math.random()*(b-a);}
 
-/** ---------- 关卡生成（无限递增） ----------
- * levelNumber 从 1 开始：1/2/3/4/5/6/…
- * posInCycle = (levelNumber-1) % 3 -> 0,1,2 对应 L1/L2/L3
- * ring       = Math.floor((levelNumber-1) / 3)  第几轮（0,1,2…）
- * 每一轮增加 pairs/kinds，时间略缩短
- */
+/** ---------- 关卡生成（无限递增） ---------- */
 function getLevelConfig(levelNumber){
-  const pos = (levelNumber-1) % 3;       // 0/1/2
+  const pos = (levelNumber-1) % 3;         // 0/1/2 → L1/L2/L3
   const ring = Math.floor((levelNumber-1)/3);
   const base = BASE_LEVELS[pos];
-
   const pairs = base.pairs + ring * PAIRS_PER_RING;
   const kinds = base.kinds + ring * KINDS_PER_RING;
-  const timeRaw = Math.max(30, base.time - ring * TIME_DECAY_PER_RING); // 原始时间不低于30s
+  const timeRaw = Math.max(30, base.time - ring * TIME_DECAY_PER_RING);
   const time = Math.max(1, Math.round(timeRaw * TIME_SCALE));
-
   return {pairs, kinds, time, pos, ring};
 }
 
-/** ---------- 倒计时 & UI ---------- */
+/** ---------- 倒计时 ---------- */
 let timerId=null, timerTotal=0, emergencyOn=false;
 function clearTimer(){ if(timerId){ clearInterval(timerId); timerId=null; } emergencyOn=false; stage.classList.remove('shake'); timeFill.classList.remove('pulse'); timeLabel.classList.remove('pulse'); panel.classList.remove('time-ok','time-warn','time-danger'); }
 function startTimer(seconds){
@@ -224,11 +221,11 @@ function updateTimerUI(){
   else{ panel.classList.add('time-danger'); timeFill.style.background='linear-gradient(90deg,var(--red),#fca5a5)'; if(state.timeLeft<=10){ timeFill.classList.add('pulse'); timeLabel.classList.add('pulse'); stage.classList.add('shake'); if(!emergencyOn){emergencyOn=true; if(navigator.vibrate) navigator.vibrate(120);} } else { timeFill.classList.remove('pulse'); timeLabel.classList.remove('pulse'); stage.classList.remove('shake'); emergencyOn=false; } }
 }
 
-/** ---------- 构建首页 3 个入口（起点） ---------- */
+/** ---------- 首页入口（保持三档） ---------- */
 ['L1 简单','L2 一般','L3 困难'].forEach((txt,i)=>{
   const b=document.createElement('button');
   b.className='lv'; b.textContent=txt;
-  b.onclick=()=>{ ensureAC(); startGame(i+1); }; // 直接以 1/2/3 关开局
+  b.onclick=()=>{ ensureAC(); startGame(i+1); };
   levelsEl.appendChild(b);
 });
 startOverlay.style.display='flex';
@@ -245,12 +242,11 @@ function startGame(levelNumber){
 }
 btnRestart.onclick=()=>startGame(state.lv);
 btnAgain.onclick=()=>startGame(state.lv);
-btnNext.onclick=()=>startGame(state.lv+1); // 继续到真正的下一关（无限增长）
+btnNext.onclick=()=>startGame(state.lv+1); // 无限推进
 
 /** ---------- 生成散落卡片 ---------- */
 function buildScene(cfg){
   stage.innerHTML=''; state.tiles=[];
-  // 生成 pool（cfg.pairs 对、cfg.kinds 种）
   const pool=[];
   for(let i=0;i<cfg.pairs;i++){ const k=randInt(cfg.kinds); pool.push(k,k); }
   for(let i=pool.length-1;i>0;i--){ const j=randInt(i+1); [pool[i],pool[j]]=[pool[j],pool[i]]; }
@@ -267,10 +263,7 @@ function buildScene(cfg){
   }
 }
 
-/** ---------- 点击配对 ----------
- * 规则：相同即消
- * “每对 +1s” 仅在“循环内第1/2关”（pos=0/1）生效：L1/L2/L4/L5/L7…
- */
+/** ---------- 点击配对（相同即消；循环内第1/2关加1秒） ---------- */
 function onPick(el,v,cfg){
   sfxClick();
   if(state.lock) return;
@@ -294,8 +287,7 @@ function onPick(el,v,cfg){
 
     state.score+=10; scoreEl.textContent=`得分 ${state.score}`;
 
-    // 循环位置（0/1/2）决定是否加时
-    if(cfg.pos<2){
+    if(cfg.pos<2){ // L1/L2/L4/L5…
       const before = state.timeLeft;
       state.timeLeft = Math.min(timerTotal, state.timeLeft + 1);
       if(state.timeLeft>before){ sfxBonus(); updateTimerUI(); }
@@ -305,7 +297,7 @@ function onPick(el,v,cfg){
   },250);
 }
 
-/** ---------- 结算、证书 ---------- */
+/** ---------- 结算 + 证书 ---------- */
 function showEnd(win,cfg){
   clearTimer();
   const elapsed=Math.round((Date.now()-state.startTime)/1000);
@@ -320,57 +312,57 @@ function showEnd(win,cfg){
     state.finalScore = state.score;
   }
 
-  endTitle.textContent=win?'通关！🎉':'时间到！';
+  endTitle.textContent=win?'通关！🎁':'时间到！';
   const bonusText = state.timeBonus>0 ? `（含时间奖励 +${state.timeBonus}）` : '';
   endStats.textContent=`得分：${state.finalScore}${bonusText}｜用时：${elapsed}s`;
   btnNext.textContent='下一关';
 
-  const displayName = nameInput.value?.trim() || '神秘玩家';
-  const url=makeCert({win,score:state.finalScore,time:elapsed,lv:state.lv,name:displayName});
+  const name = nameInput.value?.trim() || '神秘玩家';
+  const url=makeCert({win,score:state.finalScore,time:elapsed,lv:state.lv,name});
   certImg.src=url; btnDownload.href=url;
 
   endOverlay.style.display='flex';
 }
-
-/** 证书刷新 */
 btnUpdateCert.onclick = ()=>regenerateCert();
-nameInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); regenerateCert(); }});
+nameInput.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefault(); regenerateCert(); }});
 function regenerateCert(){
   if(endOverlay.style.display==='none') return;
-  const win = /通关/.test(endTitle.textContent);
-  const elapsed = parseInt((endStats.textContent.match(/用时：(\d+)s/)||[])[1]||'0',10);
-  const displayName = nameInput.value?.trim() || '神秘玩家';
-  const url=makeCert({win, score:state.finalScore, time:elapsed, lv:state.lv, name:displayName});
+  const win=/通关/.test(endTitle.textContent);
+  const elapsed=parseInt((endStats.textContent.match(/用时：(\d+)s/)||[])[1]||'0',10);
+  const name=nameInput.value?.trim()||'神秘玩家';
+  const url=makeCert({win,score:state.finalScore,time:elapsed,lv:state.lv,name});
   certImg.src=url; btnDownload.href=url;
 }
 
-/** 证书绘制 */
+/** 圣诞证书绘制 */
 function makeCert({win,score,time,lv,name}){
   const w=900,h=600; const c=document.createElement('canvas'); c.width=w; c.height=h; const ctx=c.getContext('2d');
 
-  const g=ctx.createLinearGradient(0,0,0,h); g.addColorStop(0,'#1a1440'); g.addColorStop(1,'#080816');
+  const g=ctx.createLinearGradient(0,0,0,h); g.addColorStop(0,'#08323a'); g.addColorStop(1,'#061c21');
   ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
-  ctx.strokeStyle='#7e5cef'; ctx.lineWidth=6; ctx.strokeRect(20,20,w-40,h-40);
+  // 边框：圣诞红绿渐变
+  const s=ctx.createLinearGradient(20,20,w-20,h-20); s.addColorStop(0,'#22c55e'); s.addColorStop(1,'#ef4444');
+  ctx.strokeStyle=s; ctx.lineWidth=6; ctx.strokeRect(20,20,w-40,h-40);
 
   ctx.fillStyle='#fff'; ctx.font='bold 46px system-ui'; ctx.textAlign='center';
-  ctx.fillText('万圣节配对挑战', w/2, 100);
+  ctx.fillText('圣诞节配对挑战', w/2, 100);
 
-  ctx.font='600 30px system-ui'; ctx.fillStyle='#a7ffea';
+  ctx.font='600 30px system-ui'; ctx.fillStyle='#9de6ff';
   ctx.fillText(`颁发给：${name}`, w/2, 160);
 
-  ctx.font='28px system-ui'; ctx.fillStyle=win?'#2dd4bf':'#ff6b6b';
-  ctx.fillText(win?'🎉 通关认证':'💀 挑战结束', w/2, 210);
+  ctx.font='28px system-ui'; ctx.fillStyle=win?'#86efac':'#ff9b9b';
+  ctx.fillText(win?'🎄 通关认证':'🎄 挑战结束', w/2, 210);
 
-  ctx.textAlign='left'; ctx.fillStyle='#cfd0ff'; ctx.font='24px system-ui';
+  ctx.textAlign='left'; ctx.fillStyle='#cfefff'; ctx.font='24px system-ui';
   ctx.fillText(`关卡：Lv.${lv}`, 100, 280);
   ctx.fillText(`得分：${score}`, 100, 320);
   ctx.fillText(`用时：${time}s`, 100, 360);
 
-  ctx.fillStyle='#9aa0ff';
+  ctx.fillStyle='#a4f3ff';
   ctx.fillText(`时间：${new Date().toLocaleString('zh-CN',{hour12:false})}`, 100, 420);
 
-  ctx.textAlign='center'; ctx.fillStyle='#a7ffea'; ctx.font='22px system-ui';
-  ctx.fillText('恭喜获得本次挑战证书 🎃（可分享）', w/2, 520);
+  ctx.textAlign='center'; ctx.fillStyle='#9de6ff'; ctx.font='22px system-ui';
+  ctx.fillText('恭喜获得本次圣诞配对挑战证书 🎅（可分享）', w/2, 520);
 
   return c.toDataURL('image/png');
 }
