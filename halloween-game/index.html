@@ -63,7 +63,7 @@
     100%{ transform: translate(0px, 0px) rotate(0deg); }
   }
 
-  /* 证书预览：缩小、等比、可居中 */
+  /* 证书预览：缩小、等比、可居中、可点击原图 */
   .cert-wrap{
     margin-top:12px;
     display:flex;
@@ -73,18 +73,18 @@
     display:block;
     border-radius:12px;
     border:1px solid #1a4f56;
-    width:auto;                       /* 不再强制 100% 宽 */
-    max-width:min(100%, 520px);       /* 预览最大宽度 */
-    max-height:clamp(180px, 32vh, 300px); /* 高度自适应 */
-    object-fit:contain;               /* 等比缩放 */
+    width:auto;
+    max-width:min(100%, 520px);
+    max-height:clamp(180px, 32vh, 300px);
+    object-fit:contain;
   }
-  #endDialog { padding-bottom: 26px; } /* 让下方更通透 */
+  #endDialog { padding-bottom: 26px; }
 
   @media (max-width:600px){.tile{width:58px;height:58px;font-size:32px}}
 </style>
 </head>
 <body>
-<!-- 本地 BGM：与 index.html 同目录 -->
+<!-- 本地 BGM（与 index.html 同目录放置 bgm.mp3） -->
 <audio id="bgmTag" preload="auto" loop playsinline muted src="/bgm.mp3?v=20251103"></audio>
 
 <div class="container">
@@ -154,7 +154,13 @@
 <script>
 /* ========= 清脆音效 ========= */
 let AC;
-function ensureAC(){ if(!AC){ const C=window.AudioContext||window.webkitAudioContext; AC=new C(); } if(AC.state==='suspended') AC.resume(); }
+function ensureAC(){
+  if(!AC){
+    const C = window.AudioContext || window.webkitAudioContext;
+    AC = new C();
+  }
+  if(AC.state==='suspended') AC.resume();
+}
 function blip({fStart=1900,fEnd=900,dur=70,type='square',gain=0.045,when=0}) {
   ensureAC(); const t0=AC.currentTime+when/1000; const o=AC.createOscillator(); const g=AC.createGain();
   o.type=type; o.frequency.setValueAtTime(fStart,t0); o.frequency.exponentialRampToValueAtTime(fEnd,t0+dur/1000);
@@ -163,14 +169,43 @@ function blip({fStart=1900,fEnd=900,dur=70,type='square',gain=0.045,when=0}) {
 }
 function sfxClick(){ blip({fStart:2000,fEnd:1200,dur:60,type:'triangle',gain:.05}); blip({fStart:3000,fEnd:1800,dur:40,type:'square',gain:.03,when:10}); }
 function sfxWin(){ [800,1000,1200,1600].forEach((f,i)=>blip({fStart:f,fEnd:f/1.5,dur:120,type:'triangle',gain:.05,when:i*100})); }
+function sfxBonus(){ blip({fStart:1400,fEnd:2200,dur:90,type:'triangle',gain:.045}); }
 
-/* ========= 本地 BGM（首次触摸出声 + 切换按钮） ========= */
-const btnBgm=document.getElementById('btnBgm'); const bgmTag=document.getElementById('bgmTag');
-const BGM={enabled:true,setBtn(){btnBgm.textContent=this.enabled?'🔈 音乐开':'🔇 音乐关';},async ensurePlay(){if(!this.enabled)return;try{bgmTag.muted=false;bgmTag.volume=.35;if(bgmTag.readyState<2)bgmTag.load();await bgmTag.play();}catch(_){}},pause(){bgmTag.pause();},toggle(){this.enabled=!this.enabled;this.setBtn();this.enabled?this.ensurePlay():this.pause();}};
+/* ========= 本地 BGM（首次触摸出声 + 按钮切换） ========= */
+const btnBgm=document.getElementById('btnBgm');
+const bgmTag=document.getElementById('bgmTag');
+const BGM = {
+  enabled: true,
+  setBtn(){ btnBgm.textContent = this.enabled ? '🔈 音乐开' : '🔇 音乐关'; },
+  async ensurePlay() {
+    if (!this.enabled) return;
+    try {
+      bgmTag.muted = false;
+      bgmTag.volume = 0.35;
+      if (bgmTag.readyState < 2) bgmTag.load();
+      await bgmTag.play();
+    } catch (_) {}
+  },
+  pause() { bgmTag.pause(); },
+  toggle() {
+    this.enabled = !this.enabled;
+    this.setBtn();
+    if (this.enabled) this.ensurePlay(); else this.pause();
+  }
+};
 BGM.setBtn();
-document.addEventListener('DOMContentLoaded',()=>{bgmTag.muted=true;bgmTag.volume=0;bgmTag.play().catch(()=>{});});
-['pointerdown','touchstart','click'].forEach(ev=>document.addEventListener(ev,()=>BGM.ensurePlay(),{once:true,passive:true}));
-btnBgm.onclick=()=>BGM.toggle();
+document.addEventListener('DOMContentLoaded', () => {
+  bgmTag.muted = true;
+  bgmTag.volume = 0.0;
+  bgmTag.play().catch(()=>{});
+});
+['pointerdown','touchstart','click'].forEach(ev=>{
+  document.addEventListener(ev, ()=>BGM.ensurePlay(), {once:true, passive:true});
+});
+btnBgm.onclick = ()=>BGM.toggle();
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState==='visible' && BGM.enabled) BGM.ensurePlay();
+});
 
 /* ========= 圣诞表情池（只保留一种🎅头像，避免混淆） ========= */
 const EMOJIS=[
@@ -178,7 +213,7 @@ const EMOJIS=[
   "⛄","❄️","🌟","🍷","🥛","🧸","🔔","🪅","🪄","🍗"
 ];
 
-/* ========= 模式配置（独立线路） ========= */
+/* ========= 模式配置（独立线路 & 时间系数） ========= */
 const MODES={
   easy:{ key:'easy',  title:'简单模式',  bonusPerSec:5, base:{pairs:12,kinds:4,timeRaw:60}, perLevel:{pairs:+2,kindsEvery:2,kindsInc:+1,timeDecay:3,minTime:30} },
   normal:{ key:'normal',title:'一般模式',  bonusPerSec:6, base:{pairs:16,kinds:6,timeRaw:55}, perLevel:{pairs:+2,kindsEvery:2,kindsInc:+1,timeDecay:2,minTime:28} },
@@ -197,6 +232,8 @@ const btnNext=document.getElementById('btnNext'), btnHome=document.getElementByI
 const btnEasy=document.getElementById('btnEasy'), btnNormal=document.getElementById('btnNormal'), btnHard=document.getElementById('btnHard'), btnSelect=document.getElementById('btnSelect');
 
 let state={ mode:MODES.easy, lv:1, score:0, lock:false, picked:null, tiles:[], startTime:0, timeLeft:0, finalScore:0 };
+
+/* ========= 事件绑定 ========= */
 btnEasy.onclick = ()=>startMode(MODES.easy);
 btnNormal.onclick= ()=>startMode(MODES.normal);
 btnHard.onclick = ()=>startMode(MODES.hard);
@@ -205,16 +242,13 @@ btnSelect.onclick= ()=>{
   stage.innerHTML=''; timeFill.style.width='0'; scoreEl.textContent='得分 0'; lvLabel.textContent='-'; modeLabel.textContent='圣诞节配对挑战';
   state.lock=false; state.picked=null; state.tiles=[];
 };
-
-/* ========= 音效上下文预热 ========= */
+/* 预热音频上下文 */
 document.body.addEventListener('pointerdown', ensureAC, {once:true});
 
-/* ========= 入口 ========= */
+/* ========= 入口 & 配置 ========= */
 function startMode(mode){
   state.mode=mode; state.lv=1; BGM.ensurePlay(); startLevel(1);
 }
-
-/* ========= 关卡配置 ========= */
 function getLevelConfig(mode, level){
   const base=mode.base, inc=mode.perLevel;
   const pairs = base.pairs + (level-1)*inc.pairs;
@@ -302,7 +336,7 @@ function onPick(el,v,cfg){
     if(state.lv<=2){
       const before = state.timeLeft;
       state.timeLeft = Math.min(timerTotal, state.timeLeft + 1);
-      if(state.timeLeft>before){ updateTimerUI(); }
+      if(state.timeLeft>before){ sfxBonus(); updateTimerUI(); }
     }
 
     if(state.tiles.length===0) showEnd(true,cfg);
@@ -313,6 +347,7 @@ function onPick(el,v,cfg){
 function showEnd(win,cfg){
   clearTimer();
   const elapsed=Math.round((Date.now()-state.startTime)/1000);
+  // 时间奖励（通关才有）
   const timeBonus = win ? Math.max(0, Math.round(state.timeLeft * state.mode.bonusPerSec)) : 0;
   state.finalScore = state.score + timeBonus;
 
@@ -325,10 +360,10 @@ function showEnd(win,cfg){
     successPanel.style.display='block';
     failPanel.style.display='none';
     const name = nameInput.value?.trim() || '神秘玩家';
-    const url = makeCert({ name, score:state.finalScore, time:elapsed, lv:state.lv, mode:state.mode.title });
-    certImg.src = url;
-    btnDownload.href = url;
-    if (certLink) certLink.href = url; // 点击预览打开原图
+    const url = makeCert({
+      name, score:state.finalScore, time:elapsed, lv:state.lv, mode:state.mode.title
+    });
+    certImg.src = url; btnDownload.href = url; if (certLink) certLink.href = url;
     sfxWin();
   }else{
     // 失败：极简面板
@@ -344,39 +379,62 @@ function showEnd(win,cfg){
     const name = nameInput.value?.trim() || '神秘玩家';
     const info = /用时：(\d+)s/.test(endStats.textContent) ? parseInt(RegExp.$1,10) : elapsed;
     const url = makeCert({ name, score:state.finalScore, time:info, lv:state.lv, mode:state.mode.title });
-    certImg.src = url;
-    btnDownload.href = url;
-    if (certLink) certLink.href = url;
+    certImg.src = url; btnDownload.href = url; if (certLink) certLink.href = url;
   };
 
   endOverlay.style.display='flex';
 }
 
-/* 证书绘制（Canvas -> PNG） */
+/* === 证书绘制：第一版排版样式（居中分行，柔和配色） === */
 function makeCert({name,score,time,lv,mode}){
-  const w=900,h=600; const c=document.createElement('canvas'); c.width=w; c.height=h; const ctx=c.getContext('2d');
-  const g=ctx.createLinearGradient(0,0,0,h); g.addColorStop(0,'#08323a'); g.addColorStop(1,'#061c21');
-  ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
-  const s=ctx.createLinearGradient(20,20,w-20,h-20); s.addColorStop(0,'#22c55e'); s.addColorStop(1,'#ef4444');
-  ctx.strokeStyle=s; ctx.lineWidth=6; ctx.strokeRect(20,20,w-40,h-40);
+  const w=900,h=600;
+  const c=document.createElement('canvas'); c.width=w; c.height=h;
+  const ctx=c.getContext('2d');
 
-  ctx.fillStyle='#fff'; ctx.font='bold 46px system-ui'; ctx.textAlign='center';
-  ctx.fillText('圣诞节配对挑战 · 通关证书', w/2, 90);
+  // 背景渐变
+  const bg=ctx.createLinearGradient(0,0,0,h);
+  bg.addColorStop(0,'#08323a');
+  bg.addColorStop(1,'#061c21');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,w,h);
 
-  ctx.font='600 30px system-ui'; ctx.fillStyle='#9de6ff';
-  ctx.fillText(`颁发给：${name}`, w/2, 150);
+  // 外框渐变描边
+  const border=ctx.createLinearGradient(20,20,w-20,h-20);
+  border.addColorStop(0,'#22c55e');  // 绿
+  border.addColorStop(1,'#ef4444');  // 红
+  ctx.strokeStyle=border; ctx.lineWidth=6;
+  ctx.strokeRect(20,20,w-40,h-40);
 
-  ctx.font='28px system-ui'; ctx.fillStyle='#86efac';
-  ctx.fillText(`模式：${mode}    关卡：Lv.${lv}`, w/2, 205);
+  // 大标题（简约版）
+  ctx.fillStyle='#ffffff';
+  ctx.textAlign='center';
+  ctx.font='bold 48px system-ui, -apple-system, Segoe UI, Roboto';
+  ctx.fillText('圣诞节配对挑战', w/2, 100);
 
-  ctx.fillStyle='#cfefff'; ctx.font='26px system-ui';
-  ctx.fillText(`得分：${score}    用时：${time}s`, w/2, 250);
+  // 副标题
+  ctx.font='600 30px system-ui, -apple-system, Segoe UI, Roboto';
+  ctx.fillStyle='#86efac';
+  ctx.fillText('🎄 通关认证', w/2, 150);
 
-  ctx.fillStyle='#a4f3ff'; ctx.font='22px system-ui';
-  ctx.fillText(`时间：${new Date().toLocaleString('zh-CN',{hour12:false})}`, w/2, 295);
+  // 颁发给
+  ctx.fillStyle='#9de6ff';
+  ctx.font='600 30px system-ui, -apple-system, Segoe UI, Roboto';
+  ctx.fillText(`颁发给：${name || '神秘玩家'}`, w/2, 200);
 
-  ctx.font='24px system-ui'; ctx.fillStyle='#9de6ff';
-  ctx.fillText('恭喜完成本次圣诞配对挑战 🎅（可分享/保存）', w/2, 350);
+  // 模式/关卡/得分/用时
+  ctx.fillStyle='#cfefff';
+  ctx.font='26px system-ui, -apple-system, Segoe UI, Roboto';
+  ctx.fillText(`模式：${mode}    关卡：Lv.${lv}`, w/2, 250);
+  ctx.fillText(`得分：${score}    用时：${time}s`, w/2, 290);
+
+  // 日期
+  ctx.fillStyle='#a4f3ff';
+  ctx.font='22px system-ui, -apple-system, Segoe UI, Roboto';
+  ctx.fillText(`时间：${new Date().toLocaleString('zh-CN',{hour12:false})}`, w/2, 330);
+
+  // 祝贺语
+  ctx.fillStyle='#9de6ff';
+  ctx.font='22px system-ui, -apple-system, Segoe UI, Roboto';
+  ctx.fillText('恭喜完成本次圣诞配对挑战 🎅（可分享/保存）', w/2, 380);
 
   return c.toDataURL('image/png');
 }
