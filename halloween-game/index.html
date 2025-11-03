@@ -231,7 +231,7 @@ const nameInput=document.getElementById('nameInput'), btnUpdateCert=document.get
 const btnNext=document.getElementById('btnNext'), btnHome=document.getElementById('btnHome'), btnRetry=document.getElementById('btnRetry');
 const btnEasy=document.getElementById('btnEasy'), btnNormal=document.getElementById('btnNormal'), btnHard=document.getElementById('btnHard'), btnSelect=document.getElementById('btnSelect');
 
-let state={ mode:MODES.easy, lv:1, score:0, lock:false, picked:null, tiles:[], startTime:0, timeLeft:0, finalScore:0 };
+let state={ mode:MODES.easy, lv:1, score:0, lock:false, picked:null, tiles:[], startTime:0, timeLeft:0, finalScore:0, lastWin:true };
 
 /* ========= 事件绑定 ========= */
 btnEasy.onclick = ()=>startMode(MODES.easy);
@@ -350,6 +350,7 @@ function showEnd(win,cfg){
   // 时间奖励（通关才有）
   const timeBonus = win ? Math.max(0, Math.round(state.timeLeft * state.mode.bonusPerSec)) : 0;
   state.finalScore = state.score + timeBonus;
+  state.lastWin = win;
 
   endTitle.textContent=win?'通关！🎁':'时间到！🎅';
   const bonusText = timeBonus>0 ? `（时间奖励 +${timeBonus}）` : '';
@@ -361,9 +362,11 @@ function showEnd(win,cfg){
     failPanel.style.display='none';
     const name = nameInput.value?.trim() || '神秘玩家';
     const url = makeCert({
-      name, score:state.finalScore, time:elapsed, lv:state.lv, mode:state.mode.title
+      name, score:state.finalScore, time:elapsed, lv:state.lv, mode:state.mode.title, win:true
     });
     certImg.src = url; btnDownload.href = url; if (certLink) certLink.href = url;
+    // 下载文件名更友好
+    btnDownload.download = `圣诞节证书_Lv${state.lv}_${name}.png`;
     sfxWin();
   }else{
     // 失败：极简面板
@@ -375,66 +378,90 @@ function showEnd(win,cfg){
   btnRetry.onclick = ()=>{ endOverlay.style.display='none'; startLevel(state.lv); };
   btnHome.onclick  = ()=>{ endOverlay.style.display='none'; startOverlay.style.display='flex'; };
   btnNext.onclick  = ()=>{ endOverlay.style.display='none'; startLevel(state.lv+1); };
-  btnUpdateCert.onclick = ()=>{ // 更新证书 & 刷新链接
+  btnUpdateCert.onclick = ()=>{
     const name = nameInput.value?.trim() || '神秘玩家';
     const info = /用时：(\d+)s/.test(endStats.textContent) ? parseInt(RegExp.$1,10) : elapsed;
-    const url = makeCert({ name, score:state.finalScore, time:info, lv:state.lv, mode:state.mode.title });
+    const url = makeCert({
+      name, score:state.finalScore, time:info, lv:state.lv, mode:state.mode.title, win: state.lastWin
+    });
     certImg.src = url; btnDownload.href = url; if (certLink) certLink.href = url;
+    btnDownload.download = `圣诞节证书_Lv${state.lv}_${name}.png`;
   };
 
   endOverlay.style.display='flex';
 }
 
-/* === 证书绘制：第一版排版样式（居中分行，柔和配色） === */
-function makeCert({name,score,time,lv,mode}){
+/* === 证书绘制：自动区分通关/失败状态（按你截图排版） === */
+function makeCert({name,score,time,lv,mode,win=true}){
   const w=900,h=600;
   const c=document.createElement('canvas'); c.width=w; c.height=h;
   const ctx=c.getContext('2d');
 
-  // 背景渐变
+  // 背景
   const bg=ctx.createLinearGradient(0,0,0,h);
   bg.addColorStop(0,'#08323a');
   bg.addColorStop(1,'#061c21');
   ctx.fillStyle=bg; ctx.fillRect(0,0,w,h);
 
-  // 外框渐变描边
+  // 外框
   const border=ctx.createLinearGradient(20,20,w-20,h-20);
-  border.addColorStop(0,'#22c55e');  // 绿
-  border.addColorStop(1,'#ef4444');  // 红
+  border.addColorStop(0,'#22c55e');
+  border.addColorStop(1,'#ef4444');
   ctx.strokeStyle=border; ctx.lineWidth=6;
   ctx.strokeRect(20,20,w-40,h-40);
 
-  // 大标题（简约版）
+  // 标题
   ctx.fillStyle='#ffffff';
   ctx.textAlign='center';
-  ctx.font='bold 48px system-ui, -apple-system, Segoe UI, Roboto';
-  ctx.fillText('圣诞节配对挑战', w/2, 100);
-
-  // 副标题
-  ctx.font='600 30px system-ui, -apple-system, Segoe UI, Roboto';
-  ctx.fillStyle='#86efac';
-  ctx.fillText('🎄 通关认证', w/2, 150);
+  ctx.textBaseline='alphabetic';
+  ctx.font='900 56px system-ui, -apple-system, Segoe UI, Roboto';
+  ctx.fillText('圣诞节配对挑战', w/2, 115);
 
   // 颁发给
+  const nick = name && name.trim() ? name.trim() : '神秘玩家';
   ctx.fillStyle='#9de6ff';
-  ctx.font='600 30px system-ui, -apple-system, Segoe UI, Roboto';
-  ctx.fillText(`颁发给：${name || '神秘玩家'}`, w/2, 200);
+  ctx.font='600 34px system-ui, -apple-system, Segoe UI, Roboto';
+  ctx.fillText(`颁发给： ${nick}`, w/2, 170);
 
-  // 模式/关卡/得分/用时
-  ctx.fillStyle='#cfefff';
-  ctx.font='26px system-ui, -apple-system, Segoe UI, Roboto';
-  ctx.fillText(`模式：${mode}    关卡：Lv.${lv}`, w/2, 250);
-  ctx.fillText(`得分：${score}    用时：${time}s`, w/2, 290);
+  // 🎄 通关认证 / 挑战结束
+  const label = win ? '通关认证' : '挑战结束';
+  const color = win ? '#86efac' : '#ff6b6b';
+  ctx.textAlign='center';
+  ctx.font='36px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",system-ui';
+  ctx.fillText('🎄', w/2 - 60, 215);
+  ctx.font='600 32px system-ui, -apple-system, Segoe UI, Roboto';
+  ctx.fillStyle=color;
+  ctx.fillText(label, w/2 + 20, 215);
 
-  // 日期
-  ctx.fillStyle='#a4f3ff';
-  ctx.font='22px system-ui, -apple-system, Segoe UI, Roboto';
-  ctx.fillText(`时间：${new Date().toLocaleString('zh-CN',{hour12:false})}`, w/2, 330);
+  // 左对齐信息列表
+  const startX = 120;
+  let y = 270;
+  const lh = 52;
+  const labelColor = '#bfe9ff';
+  const valueColor = '#e7faff';
+  const labelFont  = '600 28px system-ui, -apple-system, Segoe UI, Roboto';
+  const valueFont  = '600 28px system-ui, -apple-system, Segoe UI, Roboto';
 
-  // 祝贺语
-  ctx.fillStyle='#9de6ff';
-  ctx.font='22px system-ui, -apple-system, Segoe UI, Roboto';
-  ctx.fillText('恭喜完成本次圣诞配对挑战 🎅（可分享/保存）', w/2, 380);
+  function row(label, value){
+    ctx.textAlign='left';
+    ctx.fillStyle=labelColor; ctx.font=labelFont;
+    ctx.fillText(label, startX, y);
+    ctx.fillStyle=valueColor; ctx.font=valueFont;
+    ctx.fillText(value, startX + 90, y);
+    y += lh;
+  }
+
+  row('模式：', mode);
+  row('关卡：', `Lv.${lv}`);
+  row('得分：', `${score}`);
+  row('用时：', `${time}s`);
+  row('时间：', new Date().toLocaleString('zh-CN',{hour12:false}));
+
+  // 底部祝贺语
+  ctx.textAlign='center';
+  ctx.fillStyle='#bfe9ff';
+  ctx.font='600 22px system-ui, -apple-system, Segoe UI, Roboto';
+  ctx.fillText('恭喜获得本次圣诞配对挑战证书 🧑‍🎄（可分享）', w/2, h - 60);
 
   return c.toDataURL('image/png');
 }
