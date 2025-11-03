@@ -82,10 +82,8 @@
     <div class="title"><span>🌕</span><span>万圣节配对挑战</span></div>
     <div class="panel" id="panel">
       <span class="badge" id="score">得分 0</span>
-      <span class="badge" id="combo">连击 x1</span>
       <span class="badge">关卡 <span id="lvLabel">1</span></span>
 
-      <!-- 进度条 + 倒计时数字 -->
       <div class="meter"><div class="fill" id="timeFill"></div></div>
       <span class="badge" id="timeLabel">倒计时 0s</span>
 
@@ -97,16 +95,15 @@
   <footer>🎃 规则：点击两张相同图案即可配对消除。</footer>
 </div>
 
-<!-- 欢迎页（3关） -->
+<!-- 欢迎页：只展示 L1 / L2 / L3 的起点 -->
 <div class="overlay" id="startOverlay">
   <div class="dialog">
-    <h2>万圣夜开始啦 👻</h2>
-    <p class="dim">选择关卡开始游戏：</p>
+    <h2>选择难度开始 👻</h2>
     <div class="levels" id="levels"></div>
   </div>
 </div>
 
-<!-- 结算页（输入昵称 & 即时刷新证书） -->
+<!-- 结算页 -->
 <div class="overlay" id="endOverlay" style="display:none;">
   <div class="dialog">
     <h2 id="endTitle">通关！</h2>
@@ -127,15 +124,23 @@
 </div>
 
 <script>
-/** ---------- 配置（3 关 + 低难度） ---------- */
-const EMOJIS=["🎃","👻","🦇","🕷️","🕸️","🍬","💀","🐈‍⬛","🧙‍♀️","🍭"];
-const LEVELS=[{pairs:12,kinds:4,time:45},{pairs:16,kinds:6,time:60},{pairs:20,kinds:8,time:75}];
-const TIME_SCALE = 2/3; // 关卡时间缩短为原来的 2/3
-// ✅ 通关时间奖励按关卡阶梯：L1×5、L2×6、L3×8
-const BONUS_PER_SEC_BY_LEVEL = [5, 6, 8];
-const TILE_SIZE=68;
+/** ---------- 基础配置（循环模板） ---------- */
+const EMOJIS=["🎃","👻","🦇","🕷️","🕸️","🍬","💀","🐈‍⬛","🧙‍♀️","🍭","🧛","🧟","🩸","🪦","🧪","🌕"];
+/* L1~L3 的基础模板：pairs=对数、kinds=种类、time=原始秒数 */
+const BASE_LEVELS=[
+  {pairs:12,kinds:4,time:45},  // L1（简单）
+  {pairs:16,kinds:6,time:60},  // L2（一般）
+  {pairs:20,kinds:8,time:75}   // L3（困难）
+];
+/* 循环难度系数：每完成 3 关，进入下一轮，按轮数递增难度 */
+const TIME_SCALE = 2/3;             // 实际倒计时 = time × 2/3
+const PAIRS_PER_RING = 4;           // 每一轮额外 +4 对
+const KINDS_PER_RING = 2;           // 每一轮额外 +2 种
+const TIME_DECAY_PER_RING = 5;      // 每一轮原始时间 -5s（上限不低于 30s）
+/* 结算时间奖励：按“循环内的位置”计算倍率（1→×5、2→×6、3→×8） */
+const BONUS_PER_SEC_BY_POS = [5,6,8];
 
-/** ---------- 清脆点击 & 通关音效（WebAudio） ---------- */
+/** ---------- 音效 ---------- */
 let AC;
 function ensureAC(){ if(!AC){ const C=window.AudioContext||window.webkitAudioContext; AC=new C(); } if(AC.state==='suspended') AC.resume(); }
 function blip({fStart=1900,fEnd=900,dur=70,type='square',gain=0.045,when=0}) {
@@ -146,20 +151,18 @@ function blip({fStart=1900,fEnd=900,dur=70,type='square',gain=0.045,when=0}) {
 }
 function sfxClick(){ blip({fStart:2000,fEnd:1200,dur:60,type:'triangle',gain:.05}); blip({fStart:3000,fEnd:1800,dur:40,type:'square',gain:.03,when:10}); }
 function sfxWin(){ [800,1000,1200,1600].forEach((f,i)=>blip({fStart:f,fEnd:f/1.5,dur:120,type:'triangle',gain:.05,when:i*100})); }
-// 奖励音（短促上扬）
 function sfxBonus(){ blip({fStart:1400,fEnd:2200,dur:90,type:'triangle',gain:.045}); }
 
 /** ---------- 状态 ---------- */
 let state={
-  lv:0, score:0, combo:1, bestCombo:1, lock:false,
-  picked:null, tiles:[], startTime:0, name:'',
-  timeLeft:0, finalScore:0, timeBonus:0
+  lv:1, score:0, lock:false,
+  picked:null, tiles:[], startTime:0,
+  timeLeft:0, timeBonus:0, finalScore:0
 };
 
 // DOM
 const stage=document.getElementById('stage');
 const scoreEl=document.getElementById('score');
-const comboEl=document.getElementById('combo');
 const lvLabel=document.getElementById('lvLabel');
 const timeFill=document.getElementById('timeFill');
 const timeLabel=document.getElementById('timeLabel');
@@ -180,107 +183,74 @@ const btnRestart=document.getElementById('btnRestart');
 const btnAgain=document.getElementById('btnAgain');
 const btnNext=document.getElementById('btnNext');
 
-// 工具
+/** ---------- 工具 ---------- */
 function randInt(n){return Math.floor(Math.random()*n);}
 function randFloat(a,b){return a+Math.random()*(b-a);}
 
-/** ---------- 倒计时（带进度条 + 颜色 + 脉冲 + 抖动） ---------- */
-let timerId=null, timerTotal=0;
-let emergencyOn=false; // 进入紧急态（≤10s）只触发一次震动
+/** ---------- 关卡生成（无限递增） ----------
+ * levelNumber 从 1 开始：1/2/3/4/5/6/…
+ * posInCycle = (levelNumber-1) % 3 -> 0,1,2 对应 L1/L2/L3
+ * ring       = Math.floor((levelNumber-1) / 3)  第几轮（0,1,2…）
+ * 每一轮增加 pairs/kinds，时间略缩短
+ */
+function getLevelConfig(levelNumber){
+  const pos = (levelNumber-1) % 3;       // 0/1/2
+  const ring = Math.floor((levelNumber-1)/3);
+  const base = BASE_LEVELS[pos];
+
+  const pairs = base.pairs + ring * PAIRS_PER_RING;
+  const kinds = base.kinds + ring * KINDS_PER_RING;
+  const timeRaw = Math.max(30, base.time - ring * TIME_DECAY_PER_RING); // 原始时间不低于30s
+  const time = Math.max(1, Math.round(timeRaw * TIME_SCALE));
+
+  return {pairs, kinds, time, pos, ring};
+}
+
+/** ---------- 倒计时 & UI ---------- */
+let timerId=null, timerTotal=0, emergencyOn=false;
 function clearTimer(){ if(timerId){ clearInterval(timerId); timerId=null; } emergencyOn=false; stage.classList.remove('shake'); timeFill.classList.remove('pulse'); timeLabel.classList.remove('pulse'); panel.classList.remove('time-ok','time-warn','time-danger'); }
 function startTimer(seconds){
-  clearTimer();
-  timerTotal = seconds;
-  state.timeLeft = seconds;
-  updateTimerUI();
-  timerId = setInterval(()=>{
-    state.timeLeft -= 1;
-    updateTimerUI();
-    if(state.timeLeft<=0){
-      clearTimer();
-      showEnd(false); // 时间到，判负
-    }
-  },1000);
+  clearTimer(); timerTotal=seconds; state.timeLeft=seconds; updateTimerUI();
+  timerId=setInterval(()=>{ state.timeLeft-=1; updateTimerUI(); if(state.timeLeft<=0){ clearTimer(); showEnd(false);} },1000);
 }
 function updateTimerUI(){
-  // 数字
-  if(timeLabel) timeLabel.textContent = `倒计时 ${Math.max(0, state.timeLeft)}s`;
-
-  // 进度条 & 色阶
+  timeLabel.textContent = `倒计时 ${Math.max(0,state.timeLeft)}s`;
   const pct = timerTotal>0 ? (state.timeLeft/timerTotal)*100 : 0;
-  timeFill.style.width = Math.max(0, Math.min(100, pct)) + '%';
+  timeFill.style.width = Math.max(0,Math.min(100,pct))+'%';
 
-  // 根据阈值切换颜色与状态类
   panel.classList.remove('time-ok','time-warn','time-danger');
-  if(pct > 50){
-    panel.classList.add('time-ok');
-    timeFill.style.background = 'linear-gradient(90deg,var(--green),#86efac)';
-    timeFill.classList.remove('pulse');
-    timeLabel.classList.remove('pulse');
-    stage.classList.remove('shake');
-    emergencyOn=false;
-  }else if(pct > 20){
-    panel.classList.add('time-warn');
-    timeFill.style.background = 'linear-gradient(90deg,var(--amber),#fde68a)';
-    timeFill.classList.remove('pulse');
-    timeLabel.classList.remove('pulse');
-    stage.classList.remove('shake');
-    emergencyOn=false;
-  }else{
-    panel.classList.add('time-danger');
-    timeFill.style.background = 'linear-gradient(90deg,var(--red),#fca5a5)';
-
-    // <10s 开启脉冲 & 抖动
-    if(state.timeLeft <= 10){
-      timeFill.classList.add('pulse');
-      timeLabel.classList.add('pulse');
-      stage.classList.add('shake');
-
-      // 仅第一次进入紧急态时震动一下（移动端）
-      if(!emergencyOn){
-        emergencyOn = true;
-        if('vibrate' in navigator){ navigator.vibrate(120); }
-      }
-    }else{
-      timeFill.classList.remove('pulse');
-      timeLabel.classList.remove('pulse');
-      stage.classList.remove('shake');
-      emergencyOn=false;
-    }
-  }
+  if(pct>50){ panel.classList.add('time-ok'); timeFill.style.background='linear-gradient(90deg,var(--green),#86efac)'; timeFill.classList.remove('pulse'); timeLabel.classList.remove('pulse'); stage.classList.remove('shake'); emergencyOn=false; }
+  else if(pct>20){ panel.classList.add('time-warn'); timeFill.style.background='linear-gradient(90deg,var(--amber),#fde68a)'; timeFill.classList.remove('pulse'); timeLabel.classList.remove('pulse'); stage.classList.remove('shake'); emergencyOn=false; }
+  else{ panel.classList.add('time-danger'); timeFill.style.background='linear-gradient(90deg,var(--red),#fca5a5)'; if(state.timeLeft<=10){ timeFill.classList.add('pulse'); timeLabel.classList.add('pulse'); stage.classList.add('shake'); if(!emergencyOn){emergencyOn=true; if(navigator.vibrate) navigator.vibrate(120);} } else { timeFill.classList.remove('pulse'); timeLabel.classList.remove('pulse'); stage.classList.remove('shake'); emergencyOn=false; } }
 }
 
-/** 关卡选择（3关，显示缩短后时间） */
-LEVELS.forEach((lv,i)=>{
+/** ---------- 构建首页 3 个入口（起点） ---------- */
+['L1 简单','L2 一般','L3 困难'].forEach((txt,i)=>{
   const b=document.createElement('button');
-  b.className='lv';
-  const t = Math.max(1, Math.round(lv.time * TIME_SCALE));
-  b.innerHTML=`Lv.${i+1}<br><span class="dim">${lv.pairs*2}张 / ${lv.kinds}种 / ${t}s</span>`;
-  b.onclick=()=>{ ensureAC(); startGame(i); };
+  b.className='lv'; b.textContent=txt;
+  b.onclick=()=>{ ensureAC(); startGame(i+1); }; // 直接以 1/2/3 关开局
   levelsEl.appendChild(b);
 });
 startOverlay.style.display='flex';
 document.body.addEventListener('pointerdown', ensureAC, {once:true});
 
-/** 开始/重开/下一关 */
-function startGame(i){
-  const cfg=LEVELS[i];
-  state.lv=i; state.score=0; state.combo=1; state.bestCombo=1; state.lock=false;
-  state.picked=null; state.startTime=Date.now();
-  scoreEl.textContent='得分 0'; comboEl.textContent='连击 x1'; lvLabel.textContent=i+1;
+/** ---------- 开始/重开/下一关 ---------- */
+function startGame(levelNumber){
+  const cfg=getLevelConfig(levelNumber);
+  state.lv=levelNumber; state.score=0; state.lock=false; state.picked=null; state.startTime=Date.now();
+  scoreEl.textContent='得分 0'; lvLabel.textContent=levelNumber;
   buildScene(cfg);
-  const seconds = Math.max(1, Math.round(cfg.time * TIME_SCALE)); // 使用缩短后的时间
-  startTimer(seconds);
-  startOverlay.style.display='none';
-  endOverlay.style.display='none';
+  startTimer(cfg.time);
+  startOverlay.style.display='none'; endOverlay.style.display='none';
 }
 btnRestart.onclick=()=>startGame(state.lv);
 btnAgain.onclick=()=>startGame(state.lv);
-btnNext.onclick=()=>startGame(Math.min(state.lv+1,LEVELS.length-1));
+btnNext.onclick=()=>startGame(state.lv+1); // 继续到真正的下一关（无限增长）
 
-/** 随机散落卡片 */
+/** ---------- 生成散落卡片 ---------- */
 function buildScene(cfg){
   stage.innerHTML=''; state.tiles=[];
+  // 生成 pool（cfg.pairs 对、cfg.kinds 种）
   const pool=[];
   for(let i=0;i<cfg.pairs;i++){ const k=randInt(cfg.kinds); pool.push(k,k); }
   for(let i=pool.length-1;i>0;i--){ const j=randInt(i+1); [pool[i],pool[j]]=[pool[j],pool[i]]; }
@@ -288,17 +258,20 @@ function buildScene(cfg){
   const rect=stage.getBoundingClientRect(), W=rect.width, H=rect.height, pad=10;
   for(const v of pool){
     const el=document.createElement('div');
-    el.className='tile'; el.textContent=EMOJIS[v]; el.dataset.v=v;
+    el.className='tile'; el.textContent=EMOJIS[v % EMOJIS.length]; el.dataset.v=v;
     const x=randFloat(pad, W-68-pad), y=randFloat(pad, H-68-pad);
     el.style.left=x+'px'; el.style.top=y+'px';
-    el.onclick=()=>onPick(el,v);
+    el.onclick=()=>onPick(el,v,cfg);
     stage.appendChild(el);
     state.tiles.push({el,v});
   }
 }
 
-/** 简化配对逻辑：相同即消除（前两关：每消一对 +1 秒，最多回满） */
-function onPick(el,v){
+/** ---------- 点击配对 ----------
+ * 规则：相同即消
+ * “每对 +1s” 仅在“循环内第1/2关”（pos=0/1）生效：L1/L2/L4/L5/L7…
+ */
+function onPick(el,v,cfg){
   sfxClick();
   if(state.lock) return;
   if(!state.picked){ state.picked={el,v}; el.classList.add('selected'); return; }
@@ -319,31 +292,26 @@ function onPick(el,v){
     state.tiles=state.tiles.filter(t=>t.el!==a && t.el!==b);
     state.lock=false; state.picked=null;
 
-    // 基础得分
     state.score+=10; scoreEl.textContent=`得分 ${state.score}`;
 
-    // ✅ 奖励时间：仅前两关（lv=0,1），每消一对 +1 秒；上限不超过本关最大时长
-    if(state.lv < 2){
+    // 循环位置（0/1/2）决定是否加时
+    if(cfg.pos<2){
       const before = state.timeLeft;
       state.timeLeft = Math.min(timerTotal, state.timeLeft + 1);
-      if(state.timeLeft > before){
-        sfxBonus();
-        updateTimerUI(); // 立刻刷新进度条/状态
-      }
+      if(state.timeLeft>before){ sfxBonus(); updateTimerUI(); }
     }
 
-    if(state.tiles.length===0) showEnd(true);
+    if(state.tiles.length===0) showEnd(true,cfg);
   },250);
 }
 
-/** 结算 + 证书（名字可选，默认“神秘玩家”） */
-function showEnd(win){
-  clearTimer(); // 结束时停止计时 + 清状态
+/** ---------- 结算、证书 ---------- */
+function showEnd(win,cfg){
+  clearTimer();
   const elapsed=Math.round((Date.now()-state.startTime)/1000);
 
-  // ✅ 按关卡阶梯计算时间奖励：剩余秒 * BONUS_PER_SEC_BY_LEVEL[lv]
   if(win){
-    const factor = BONUS_PER_SEC_BY_LEVEL[state.lv] || BONUS_PER_SEC_BY_LEVEL[BONUS_PER_SEC_BY_LEVEL.length-1];
+    const factor = BONUS_PER_SEC_BY_POS[cfg.pos] || BONUS_PER_SEC_BY_POS.at(-1);
     state.timeBonus = Math.max(0, Math.round(state.timeLeft * factor));
     state.finalScore = state.score + state.timeBonus;
     sfxWin();
@@ -355,15 +323,16 @@ function showEnd(win){
   endTitle.textContent=win?'通关！🎉':'时间到！';
   const bonusText = state.timeBonus>0 ? `（含时间奖励 +${state.timeBonus}）` : '';
   endStats.textContent=`得分：${state.finalScore}${bonusText}｜用时：${elapsed}s`;
+  btnNext.textContent='下一关';
 
   const displayName = nameInput.value?.trim() || '神秘玩家';
-  const url=makeCert({win,score:state.finalScore,time:elapsed,lv:state.lv+1,name:displayName});
+  const url=makeCert({win,score:state.finalScore,time:elapsed,lv:state.lv,name:displayName});
   certImg.src=url; btnDownload.href=url;
 
   endOverlay.style.display='flex';
 }
 
-/** 点击“更新证书”或输入回车，实时刷新 */
+/** 证书刷新 */
 btnUpdateCert.onclick = ()=>regenerateCert();
 nameInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); regenerateCert(); }});
 function regenerateCert(){
@@ -371,11 +340,11 @@ function regenerateCert(){
   const win = /通关/.test(endTitle.textContent);
   const elapsed = parseInt((endStats.textContent.match(/用时：(\d+)s/)||[])[1]||'0',10);
   const displayName = nameInput.value?.trim() || '神秘玩家';
-  const url=makeCert({win, score:state.finalScore, time:elapsed, lv:state.lv+1, name:displayName});
+  const url=makeCert({win, score:state.finalScore, time:elapsed, lv:state.lv, name:displayName});
   certImg.src=url; btnDownload.href=url;
 }
 
-/** 证书绘制（显示最终分数） */
+/** 证书绘制 */
 function makeCert({win,score,time,lv,name}){
   const w=900,h=600; const c=document.createElement('canvas'); c.width=w; c.height=h; const ctx=c.getContext('2d');
 
@@ -394,7 +363,7 @@ function makeCert({win,score,time,lv,name}){
 
   ctx.textAlign='left'; ctx.fillStyle='#cfd0ff'; ctx.font='24px system-ui';
   ctx.fillText(`关卡：Lv.${lv}`, 100, 280);
-  ctx.fillText(`得分：${score}`, 100, 320);        // 使用最终分
+  ctx.fillText(`得分：${score}`, 100, 320);
   ctx.fillText(`用时：${time}s`, 100, 360);
 
   ctx.fillStyle='#9aa0ff';
