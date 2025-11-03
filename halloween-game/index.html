@@ -44,7 +44,7 @@
   .tile.pop{animation:pop .35s both}
   @keyframes pop{0%{transform:scale(1)}30%{transform:scale(1.15)}100%{transform:scale(.1);opacity:0}}
   .overlay{position:fixed;inset:0;background:rgba(3,10,12,.75);display:none;align-items:center;justify-content:center;padding:20px;z-index:10}
-  .dialog{max-width:640px;width:100%;background:linear-gradient(180deg,#0f2e33,#0a1f22);border:1px solid #1a4f56;border-radius:18px;box-shadow:var(--shadow);padding:22px}
+  .dialog{max-width:640px;width:100%;background:linear-gradient(180deg,#0f2e33,#0a1f22);border:1px solid #1a5f66;border-radius:18px;box-shadow:var(--shadow);padding:22px}
   .levels{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-top:10px}
   .lv{padding:14px;border-radius:12px;background:#0c2326;border:1px solid #1a4f56;cursor:pointer;text-align:center;font-weight:900}
   /* 倒计时状态 + 紧急抖动 */
@@ -62,6 +62,24 @@
     80%{ transform: translate(-1px, -1px) rotate(0.3deg); }
     100%{ transform: translate(0px, 0px) rotate(0deg); }
   }
+
+  /* 证书预览：缩小、等比、可居中 */
+  .cert-wrap{
+    margin-top:12px;
+    display:flex;
+    justify-content:center;
+  }
+  .cert-wrap img{
+    display:block;
+    border-radius:12px;
+    border:1px solid #1a4f56;
+    width:auto;                       /* 不再强制 100% 宽 */
+    max-width:min(100%, 520px);       /* 预览最大宽度 */
+    max-height:clamp(180px, 32vh, 300px); /* 高度自适应 */
+    object-fit:contain;               /* 等比缩放 */
+  }
+  #endDialog { padding-bottom: 26px; } /* 让下方更通透 */
+
   @media (max-width:600px){.tile{width:58px;height:58px;font-size:32px}}
 </style>
 </head>
@@ -108,15 +126,22 @@
     <!-- 胜利面板 -->
     <div id="successPanel">
       <div class="dl-bar" style="margin-top:8px;">
-        <div class="name-input" style="flex:1">
-          <input id="nameInput" type="text" placeholder="输入名字/昵称（可留空）" maxlength="20" />
+        <div class="name-input" style="flex:1;display:flex;gap:8px;">
+          <input id="nameInput" type="text" placeholder="输入名字/昵称（可留空）" maxlength="20"
+                 style="flex:1;padding:8px 10px;border-radius:8px;border:1px solid #1a4f56;background:#0c2326;color:#fff;font-weight:600;">
           <button class="btn ghost" id="btnUpdateCert">更新证书</button>
         </div>
         <a class="btn" id="btnDownload" download="圣诞节证书.png">下载证书</a>
         <button class="lv" id="btnNext">下一关</button>
         <button class="lv" id="btnHome">返回首页</button>
       </div>
-      <div class="cert-wrap"><img id="certImg" alt="证书预览" /></div>
+
+      <!-- 预览可点开原图 -->
+      <div class="cert-wrap">
+        <a id="certLink" href="#" target="_blank" rel="noopener">
+          <img id="certImg" alt="证书预览" />
+        </a>
+      </div>
     </div>
 
     <!-- 失败面板（极简） -->
@@ -167,8 +192,7 @@ const timeFill=document.getElementById('timeFill'), timeLabel=document.getElemen
 const startOverlay=document.getElementById('startOverlay'), endOverlay=document.getElementById('endOverlay');
 const endTitle=document.getElementById('endTitle'), endStats=document.getElementById('endStats');
 const successPanel=document.getElementById('successPanel'), failPanel=document.getElementById('failPanel');
-const nameInput=document.getElementById('nameInput'), btnUpdateCert=document.getElementById('btnUpdateCert'), btnDownload=document.getElementById('btnDownload'), certImg=document.getElementById('certImg');
-
+const nameInput=document.getElementById('nameInput'), btnUpdateCert=document.getElementById('btnUpdateCert'), btnDownload=document.getElementById('btnDownload'), certImg=document.getElementById('certImg'), certLink=document.getElementById('certLink');
 const btnNext=document.getElementById('btnNext'), btnHome=document.getElementById('btnHome'), btnRetry=document.getElementById('btnRetry');
 const btnEasy=document.getElementById('btnEasy'), btnNormal=document.getElementById('btnNormal'), btnHard=document.getElementById('btnHard'), btnSelect=document.getElementById('btnSelect');
 
@@ -289,7 +313,6 @@ function onPick(el,v,cfg){
 function showEnd(win,cfg){
   clearTimer();
   const elapsed=Math.round((Date.now()-state.startTime)/1000);
-  // 时间奖励（通关才有）
   const timeBonus = win ? Math.max(0, Math.round(state.timeLeft * state.mode.bonusPerSec)) : 0;
   state.finalScore = state.score + timeBonus;
 
@@ -302,10 +325,10 @@ function showEnd(win,cfg){
     successPanel.style.display='block';
     failPanel.style.display='none';
     const name = nameInput.value?.trim() || '神秘玩家';
-    const url = makeCert({
-      name, score:state.finalScore, time:elapsed, lv:state.lv, mode:state.mode.title
-    });
-    certImg.src = url; btnDownload.href = url;
+    const url = makeCert({ name, score:state.finalScore, time:elapsed, lv:state.lv, mode:state.mode.title });
+    certImg.src = url;
+    btnDownload.href = url;
+    if (certLink) certLink.href = url; // 点击预览打开原图
     sfxWin();
   }else{
     // 失败：极简面板
@@ -317,13 +340,13 @@ function showEnd(win,cfg){
   btnRetry.onclick = ()=>{ endOverlay.style.display='none'; startLevel(state.lv); };
   btnHome.onclick  = ()=>{ endOverlay.style.display='none'; startOverlay.style.display='flex'; };
   btnNext.onclick  = ()=>{ endOverlay.style.display='none'; startLevel(state.lv+1); };
-  btnUpdateCert.onclick = ()=>{ // 更新证书
+  btnUpdateCert.onclick = ()=>{ // 更新证书 & 刷新链接
     const name = nameInput.value?.trim() || '神秘玩家';
     const info = /用时：(\d+)s/.test(endStats.textContent) ? parseInt(RegExp.$1,10) : elapsed;
-    const url = makeCert({
-      name, score:state.finalScore, time:info, lv:state.lv, mode:state.mode.title
-    });
-    certImg.src = url; btnDownload.href = url;
+    const url = makeCert({ name, score:state.finalScore, time:info, lv:state.lv, mode:state.mode.title });
+    certImg.src = url;
+    btnDownload.href = url;
+    if (certLink) certLink.href = url;
   };
 
   endOverlay.style.display='flex';
